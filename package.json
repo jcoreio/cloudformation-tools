@@ -1,0 +1,112 @@
+{
+  "name": "@jcoreio/cloudformation-tools",
+  "version": "0.0.0-development",
+  "description": "Tools for generating CloudFormation templates and deploying CloudFormation stacks",
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "main": "lib/index.js",
+  "sideEffects": false,
+  "files": [
+    "lib/",
+    "README.md",
+    "LICENSE",
+    "yarn.lock"
+  ],
+  "scripts": {
+    "lint": "eslint src test --cache",
+    "lint:fix": "eslint --fix src test --cache",
+    "lint:watch": "esw --watch src test --cache",
+    "flow": "flow",
+    "flow:coverage": "for file in src/**.js test/**.js; do echo $file; flow coverage $file; done",
+    "flow:watch": "flow-watch -e js,js.flow,flowconfig --ignore es/ --ignore node_modules/ --watch .flowconfig --watch src/ --watch test/",
+    "clean": "rimraf es lib",
+    "build": "npm run clean && babel src --out-dir lib && flow-copy-source -v src/ lib",
+    "test": "NODE_ENV=production mocha $npm_package_config_mocha",
+    "coverage": "NODE_ENV=production BABEL_ENV=coverage nyc --reporter=lcov --reporter=text mocha $npm_package_config_mocha",
+    "test:watch": "NODE_ENV=production BABEL_ENV=test mocha --watch $npm_package_config_mocha",
+    "codecov": "nyc report --reporter=text-lcov > coverage.lcov; codecov",
+    "commitmsg": "commitlint -e $GIT_PARAMS",
+    "precommit": "npm run lint && flow",
+    "prepush": "npm test",
+    "prepublishOnly": "npm run clean && npm run lint && flow && npm test && npm run build",
+    "open:coverage": "open coverage/lcov-report/index.html",
+    "semantic-release": "semantic-release"
+  },
+  "config": {
+    "mocha": "-r babel-register ./test/**/*.js",
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.js"
+    ],
+    "require": [
+      "babel-register"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jcoreio/cloudformation-tools.git"
+  },
+  "author": "Jason McLaurin",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/jcoreio/cloudformation-tools/issues"
+  },
+  "homepage": "https://github.com/jcoreio/cloudformation-tools#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^6.0.2",
+    "@commitlint/config-conventional": "^6.0.2",
+    "@jedwards1211/commitlint-config": "^1.0.0",
+    "@jedwards1211/eslint-config": "^2.0.0",
+    "@jedwards1211/eslint-config-flow": "^1.0.0",
+    "babel-cli": "^6.23.0",
+    "babel-core": "^6.23.1",
+    "babel-eslint": "^7.1.1",
+    "babel-plugin-istanbul": "^4.0.0",
+    "babel-plugin-syntax-dynamic-import": "^6.18.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-export-extensions": "^6.22.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-flow": "^6.23.0",
+    "babel-preset-stage-1": "^6.24.1",
+    "babel-register": "^6.23.0",
+    "babel-runtime": "^6.23.0",
+    "chai": "^4.1.2",
+    "codecov": "^3.0.0",
+    "condition-circle": "^2.0.1",
+    "copy": "^0.3.0",
+    "eslint": "^3.15.0",
+    "eslint-plugin-flowtype": "^2.30.0",
+    "eslint-watch": "^3.0.0",
+    "flow-bin": "^0.83.0",
+    "flow-copy-source": "^1.2.1",
+    "flow-watch": "^1.1.0",
+    "husky": "^0.14.3",
+    "istanbul": "^0.4.5",
+    "mocha": "^4.1.0",
+    "nyc": "^11.4.1",
+    "rimraf": "^2.6.0",
+    "semantic-release": "^15.10.6"
+  },
+  "dependencies": {
+    "@jcoreio/poll": "^2.0.0",
+    "chalk": "^2.4.1",
+    "lodash": "^4.17.11",
+    "promisify-child-process": "^2.1.2",
+    "table": "^5.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "release": {
+    "verifyConditions": "condition-circle"
+  }
+}

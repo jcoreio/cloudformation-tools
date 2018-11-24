@@ -1,0 +1,30 @@
+{
+  "plugins": [
+    "syntax-dynamic-import",
+    "transform-class-properties",
+    "transform-export-extensions",
+    "transform-object-rest-spread"
+  ],
+  "presets": [["env", {"targets": {"node": "8"}}], "flow"],
+  "env": {
+    "test": {
+      "presets": [
+        ["env", {"targets": {"node": "current"}}],
+        "flow"
+      ],
+      "plugins": [
+        "transform-runtime"
+      ]
+    },
+    "coverage": {
+      "presets": [
+        ["env", {"targets": {"node": "current"}}],
+        "flow"
+      ],
+      "plugins": [
+        "transform-runtime",
+        "istanbul"
+      ]
+    }
+  }
+}
