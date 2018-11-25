@@ -12,19 +12,17 @@ async function deployCloudFormationStack({
   stackName,
   templateFile,
   parameterOverrides,
-  spawnOpts = {},
-  additionalArgs = [],
+  additionalArgs,
 }: {
   stackName: string,
   templateFile: string,
   parameterOverrides?: ?Object,
-  spawnOpts: Object,
-  additionalArgs: Array<string>,
+  additionalArgs?: ?Array<string>,
 }): Promise<void> {
   const args = [
     'cloudformation', 'deploy', '--stack-name', stackName,
     '--template-file', templateFile,
-    ...additionalArgs,
+    ...(additionalArgs || []),
   ]
   if (parameterOverrides) {
     args.push('--parameter-overrides')
