@@ -33,17 +33,14 @@ async function deployCloudFormationStack({
     }
   }
   let succeeded = false, failed = false
-  let result
   const start = new Date()
   console.log(chalk.gray(`$ aws ${args.join(' ')}`)) // eslint-disable-line no-console
-  const doDeploy = (opts = {}) => spawn('aws', args, opts)
-    .then(() => {
-      result = 'deploy succeeded'
-    }).catch((err: any) => {
-      result = err.stderr.toString().trim()
+  const doDeploy = () => spawn('aws', args, {stdio: 'inherit'})
+    .catch((err: any) => {
+      console.error('deploy failed')
     })
   if (process.env.CI) {
-    await doDeploy({stdio: 'inherit'})
+    await doDeploy()
   } else {
     doDeploy()
 
@@ -79,7 +76,7 @@ async function deployCloudFormationStack({
       }
     }
   }
-  console.log((failed ? chalk.red : chalk.green)(`deploy ${failed ? 'failed' : 'succeeded'}${result ? ': ' + result : ''}`))
+  console.log((failed ? chalk.red : chalk.green)(`deploy ${failed ? 'failed' : 'succeeded'}`))
 }
 
 export default deployCloudFormationStack
