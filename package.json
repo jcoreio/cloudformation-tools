@@ -94,7 +94,7 @@
     "mocha": "^4.1.0",
     "nyc": "^11.4.1",
     "rimraf": "^2.6.0",
-    "semantic-release": "^15.10.6"
+    "semantic-release": "^15.12.1"
   },
   "dependencies": {
     "@jcoreio/poll": "^2.0.0",
