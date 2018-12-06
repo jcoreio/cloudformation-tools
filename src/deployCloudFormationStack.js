@@ -30,7 +30,7 @@ async function deployCloudFormationStack({
       args.push(`${param}=${parameterOverrides[param]}`)
     }
   }
-  let succeeded = false, failed = false
+  let done = false, failed = false
   const start = new Date()
   console.log(chalk.gray(`$ aws ${args.join(' ')}`)) // eslint-disable-line no-console
   const doDeploy = () => spawn('aws', args, {stdio: 'inherit'})
@@ -54,7 +54,8 @@ async function deployCloudFormationStack({
         throw Error('no changes yet')
     }, 3000).timeout(30000)
 
-    while (!succeeded && !failed) {
+    while (!done) {
+      const loopBegin = Date.now()
       const statusPromise = spawn('aws', [
         'cloudformation', 'describe-stacks', '--stack-name', stackName,
         '--query', 'Stacks[0].StackStatus', '--output', 'text',
@@ -67,10 +68,15 @@ async function deployCloudFormationStack({
       // $FlowFixMe: ok to await spawn promise
       const status = (await statusPromise).stdout.toString('utf8').trim()
       if (/FAILED$/.test(status)) {
+        done = true
         failed = true
         await describeCloudFormationFailure(stackName)
       } else if (/COMPLETE$/.test(status)) {
-        succeeded = true
+        done = true
+      }
+      if (!done) {
+        const sleepTime = Math.max(1000, 3000 - (Date.now() - loopBegin))
+        await new Promise((resolve: Function) => setTimeout(resolve, sleepTime))
       }
     }
   }
