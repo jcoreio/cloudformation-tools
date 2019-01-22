@@ -1,7 +1,6 @@
 coverage
-.eslintcache
-.idea
-lib
-node_modules
 .nyc_output
-!/commitlint.config.js
+node_modules
+lib
+es
+.eslintcache

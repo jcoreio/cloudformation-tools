@@ -1,6 +1,11 @@
-// @flow
+#!/usr/bin/env node
+/**
+ * @flow
+ * @prettier
+ */
 
-import {table, getBorderCharacters} from 'table'
+import type { Writable } from 'stream'
+import { table, getBorderCharacters } from 'table'
 import chalk from 'chalk'
 
 function formatStatus(status: string): string {
@@ -11,27 +16,45 @@ function formatStatus(status: string): string {
   return status
 }
 
-export default function printStackResources(resources: Array<Object>) {
-  const data = resources.map(({
-    LogicalResourceId,
-    // PhysicalResourceId,
-    ResourceType,
-    ResourceStatus,
-    ResourceStatusReason,
-  }) => [
-    LogicalResourceId,
-    // PhysicalResourceId,
-    ResourceType,
-    formatStatus(ResourceStatus),
-    ResourceStatusReason,
-  ])
+type Resource = {
+  LogicalResourceId: string,
+  ResourceType: string,
+  ResourceStatus: string,
+  ResourceStatusReason?: string,
+}
 
-  console.error(table(data, {
-    border: getBorderCharacters(`void`),
-    columnDefault: {
-      paddingLeft: 0,
-      paddingRight: 1
-    },
-    drawHorizontalLine: () => false,
-  }))
+export default function printStackResources({
+  resources,
+  stream,
+}: {
+  stream?: ?Writable,
+  resources: $ReadOnlyArray<$ReadOnly<Resource>>,
+}) {
+  if (!stream) stream = process.stderr
+
+  const data = resources.map(
+    ({
+      LogicalResourceId, // PhysicalResourceId,
+      ResourceType,
+      ResourceStatus,
+      ResourceStatusReason,
+    }) => [
+      LogicalResourceId,
+      // PhysicalResourceId,
+      ResourceType,
+      formatStatus(ResourceStatus),
+      ResourceStatusReason,
+    ]
+  )
+
+  stream.write(
+    table(data, {
+      border: getBorderCharacters(`void`),
+      columnDefault: {
+        paddingLeft: 0,
+        paddingRight: 1,
+      },
+      drawHorizontalLine: () => false,
+    }) + '\n'
+  )
 }

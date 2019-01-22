@@ -1,31 +1,39 @@
-// @flow
+/**
+ * @flow
+ * @prettier
+ */
 
-import {spawn} from 'promisify-child-process'
-import chalk from 'chalk'
+import AWS from 'aws-sdk'
 
-const maxItems = 100
-
-async function getStackResources(stackName: string, {echo}: {echo?: ?boolean} = {}): Promise<Array<Object>> {
-  async function getResources(startingToken: ?string = null): Promise<Object> {
-    const args = [
-      'cloudformation', 'list-stack-resources', '--stack-name', stackName,
-      '--max-items', maxItems,
-    ]
-    if (startingToken) args.push('--starting-token', startingToken)
-    if (false !== echo) {
-      console.error(chalk.gray(`$ aws ${args.join(' ')}`)) // eslint-disable-line no-console
-    }
-    // $FlowFixMe: ok to await spawn
-    return JSON.parse((await spawn('aws', args)).stdout.toString('utf8'))
-  }
-
-  const resources = []
-  let result = await getResources()
-  do {
-    resources.push(...result.StackResourceSummaries)
-    if (result.NextToken) result = await getResources(result.NextToken)
-  } while (result.NextToken)
-  return resources
+type StackResource = {
+  LogicalResourceId: string,
+  PhysicalResourceId: string,
+  ResourceType: string,
+  LastUpdatedTimestamp: Date,
+  ResourceStatus: string,
+  ResourceStatusReason?: string,
+  DriftInformation: { StackResourceDriftStatus: string },
 }
 
-export default getStackResources
+export default async function getStackResources({
+  cloudformation,
+  StackName,
+}: {
+  cloudformation?: ?AWS.CloudFormation,
+  StackName: string,
+}): Promise<Array<StackResource>> {
+  if (!StackName) throw new Error('missing StackName')
+  if (!cloudformation) cloudformation = new AWS.CloudFormation()
+  const resources = []
+  let StackResourceSummaries, NextToken
+  do {
+    const options = { StackName }
+    if (NextToken) (options: any).NextToken = NextToken
+    ;({
+      StackResourceSummaries,
+      NextToken,
+    } = await cloudformation.listStackResources(options).promise())
+    resources.push(...StackResourceSummaries)
+  } while (NextToken)
+  return resources
+}

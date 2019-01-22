@@ -1,86 +1,107 @@
-// @flow
+/**
+ *@flow
+ * @prettier
+ */
 
-import chalk from 'chalk'
-import {spawn} from 'promisify-child-process'
-import poll from '@jcoreio/poll'
-
+import AWS from 'aws-sdk'
+import fs from 'fs-extra'
+import Deployer from './Deployer'
 import describeCloudFormationFailure from './describeCloudFormationFailure'
-import getStackResources from './getStackResources'
-import printStackResources from './printStackResources'
+import watchStackResources from './watchStackResources'
+import { map } from 'lodash'
 
-async function deployCloudFormationStack({
-  stackName,
-  templateFile,
-  parameterOverrides,
-  additionalArgs,
-}: {
-  stackName: string,
-  templateFile: string,
-  parameterOverrides?: ?Object,
-  additionalArgs?: ?Array<string>,
-}): Promise<void> {
-  const args = [
-    'cloudformation', 'deploy', '--stack-name', stackName,
-    '--template-file', templateFile,
-    ...(additionalArgs || []),
-  ]
-  if (parameterOverrides) {
-    args.push('--parameter-overrides')
-    for (let param in parameterOverrides) {
-      args.push(`${param}=${parameterOverrides[param]}`)
-    }
-  }
-  let done = false, failed = false
-  const start = new Date()
-  console.log(chalk.gray(`$ aws ${args.join(' ')}`)) // eslint-disable-line no-console
-  const doDeploy = () => spawn('aws', args, {stdio: 'inherit'})
-    .catch((err: any) => {
-      console.error('deploy failed')
-    })
-  if (process.env.CI) {
-    await doDeploy()
-  } else {
-    doDeploy()
-
-    await poll(async () => {
-      const response = JSON.parse(
-        // $FlowFixMe: ok to await spawn
-        (await spawn('aws', [
-          'cloudformation', 'list-change-sets', '--stack-name', stackName,
-        ])).stdout.toString('utf8')
-      )
-      const hasChanges = response.Summaries.findIndex(s => new Date(s.CreationTime) > start) >= 0
-      if (!hasChanges)
-        throw Error('no changes yet')
-    }, 3000).timeout(30000)
-
-    while (!done) {
-      const loopBegin = Date.now()
-      const statusPromise = spawn('aws', [
-        'cloudformation', 'describe-stacks', '--stack-name', stackName,
-        '--query', 'Stacks[0].StackStatus', '--output', 'text',
-      ])
-      const resources = await getStackResources(stackName, {echo: false})
-      //console.log(ansi.eraseScreen)
-      if (resources.length) printStackResources(resources)
-      else console.log('waiting for stack resources to be created...')
-      console.log(new Date().toString())
-      // $FlowFixMe: ok to await spawn promise
-      const status = (await statusPromise).stdout.toString('utf8').trim()
-      if (/FAILED$/.test(status)) {
-        done = true
-        failed = true
-        await describeCloudFormationFailure(stackName)
-      } else if (/COMPLETE$/.test(status)) {
-        done = true
-      }
-      if (!done) {
-        const sleepTime = Math.max(1000, 3000 - (Date.now() - loopBegin))
-        await new Promise((resolve: Function) => setTimeout(resolve, sleepTime))
-      }
-    }
-  }
-  console.log((failed ? chalk.red : chalk.green)(`deploy ${failed ? 'failed' : 'succeeded'}`))
+type Parameter = {
+  ParameterKey: string,
+  ParameterValue: string,
+  UsePreviousValue?: ?boolean,
 }
 
-export default deployCloudFormationStack
+type Tag = {
+  Key: string,
+  Value: string,
+}
+
+export default async function deployCloudFormationStack({
+  cloudformation,
+  watchResources,
+  StackName,
+  TemplateFile,
+  TemplateBody,
+  Parameters,
+  Capabilities,
+  RoleARN,
+  NotificationARNs,
+  Tags,
+}: {
+  cloudformation?: ?AWS.CloudFormation,
+  watchResources?: ?boolean,
+  StackName: string,
+  TemplateFile?: ?string,
+  TemplateBody?: ?string,
+  Parameters?: ?({ [string]: any } | Array<Parameter>),
+  Capabilities?: ?Array<string>,
+  RoleARN?: ?string,
+  NotificationARNs?: ?Array<string>,
+  Tags?: ?({ [string]: any } | Array<Tag>),
+}): Promise<{
+  ChangeSetName: string,
+  ChangeSetType: string,
+}> {
+  if (!StackName) throw new Error('missing StackName')
+  if (!cloudformation) cloudformation = new AWS.CloudFormation()
+  const deployer = new Deployer(cloudformation)
+
+  if (Parameters && !Array.isArray(Parameters)) {
+    Parameters = map(Parameters, (value, key) => ({
+      ParameterKey: key,
+      ParameterValue: String(value),
+    }))
+  }
+  if (Tags && !Array.isArray(Tags)) {
+    Tags = map(Tags, (Value, Key) => ({ Key, Value: String(Value) }))
+  }
+
+  if (!TemplateBody) {
+    if (TemplateFile) {
+      TemplateBody = await fs.readFile(TemplateFile, 'utf8')
+    } else {
+      throw new Error(`TemplateBody or TemplateFile is required`)
+    }
+  }
+
+  const {
+    ChangeSetName,
+    ChangeSetType,
+  } = await deployer.createAndWaitForChangeSet({
+    StackName,
+    TemplateBody,
+    Parameters,
+    Capabilities,
+    RoleARN,
+    NotificationARNs,
+    Tags,
+  })
+  let watchInterval: ?IntervalID
+  try {
+    await deployer.executeChangeSet({
+      ChangeSetName,
+      StackName,
+    })
+    watchInterval = watchResources
+      ? watchStackResources({ cloudformation, StackName })
+      : null
+    await deployer.waitForExecute({
+      StackName,
+      ChangeSetType,
+    })
+    return { ChangeSetName, ChangeSetType }
+  } catch (error) {
+    if (watchInterval != null) clearInterval(watchInterval)
+    await describeCloudFormationFailure({ cloudformation, StackName }).catch(
+      () => {}
+    )
+    throw error
+  } finally {
+    if (watchInterval != null) clearInterval(watchInterval)
+  }
+}

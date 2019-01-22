@@ -1,7 +1,13 @@
-// @flow
+#!/usr/bin/env node
+/**
+ * @flow
+ * @prettier
+ */
 
+import type AWS from 'aws-sdk'
+import type { Writable } from 'stream'
 import chalk from 'chalk'
-import {padEnd} from 'lodash'
+import { padEnd } from 'lodash'
 import getCurrentStackEvents from './getCurrentStackEvents'
 
 function wrapString(str: string, width: number): Array<string> {
@@ -22,34 +28,61 @@ function wrapString(str: string, width: number): Array<string> {
   return result
 }
 
-async function describeCloudFormationFailure(stackName: string): Promise<void> {
+export default async function describeCloudFormationFailure(options: {
+  stream?: ?Writable,
+  cloudformation?: ?AWS.CloudFormation,
+  StackName: string,
+}) {
+  const { cloudformation, StackName } = options
+  const stream = options.stream || process.stderr
   const padding = 25
 
-  for (let event of await getCurrentStackEvents(stackName)) {
-    if (!/(CREATE|UPDATE)_FAILED/.test(event.ResourceStatus)) continue
-    console.error(padEnd('ResourceStatus', padding), chalk.red(event.ResourceStatus))
-    console.error(padEnd('ResourceType', padding), event.ResourceType)
-    for (let field of [
-      'LogicalResourceId',
-      'PhysicalResourceId',
-    ]) {
-      console.error(padEnd(field, padding), chalk.bold(event[field]))
+  for await (let event of getCurrentStackEvents({
+    cloudformation,
+    StackName,
+  })) {
+    if (
+      !/(CREATE|UPDATE)_FAILED|ROLLBACK_IN_PROGRESS/.test(event.ResourceStatus)
+    )
+      continue
+    stream.write(
+      chalk`${padEnd('ResourceStatus', padding)} {red ${
+        event.ResourceStatus
+      }}\n`
+    )
+    stream.write(`${padEnd('ResourceType', padding)} ${event.ResourceType}\n`)
+    for (let field of ['LogicalResourceId', 'PhysicalResourceId']) {
+      stream.write(chalk`${padEnd(field, padding)} {bold ${event[field]}}\n`)
     }
-    console.error('ResourceStatusReason')
-    // $FlowFixMe: process.stdout.columns is a valid property
-    for (let line of wrapString(event.ResourceStatusReason, Math.min(80, process.stdout.columns - 2))) {
-      console.error(' ', chalk.bold(line))
-    }
-    const {ResourceProperties} = event
-    if (ResourceProperties) {
-      const parsed = JSON.parse(ResourceProperties)
-      console.error('ResourceProperties')
-      for (let prop in parsed) {
-        console.error(' ', chalk.gray(padEnd(prop, padding - 2)), chalk.gray.bold(parsed[prop]))
+    const { ResourceStatusReason, ResourceProperties } = event
+    if (ResourceStatusReason) {
+      stream.write('ResourceStatusReason\n')
+      for (let line of wrapString(
+        ResourceStatusReason,
+        Math.min(80, (process.stdout: any).columns - 2)
+      )) {
+        stream.write(chalk`  {bold ${line}}\n`)
       }
     }
-    console.error()
+    if (ResourceProperties) {
+      const parsed = JSON.parse(ResourceProperties)
+      stream.write('ResourceProperties\n')
+      for (let prop in parsed) {
+        stream.write(
+          chalk`  {gray ${padEnd(prop, padding - 2)}} {bold ${parsed[prop]}}\n`
+        )
+      }
+    }
+    stream.write('\n')
   }
 }
 
-export default describeCloudFormationFailure
+if (!module.parent) {
+  describeCloudFormationFailure({ StackName: process.argv[2] }).then(
+    () => process.exit(0),
+    (err: Error) => {
+      console.error(err.stack) // eslint-disable-line no-console
+      process.exit(1)
+    }
+  )
+}

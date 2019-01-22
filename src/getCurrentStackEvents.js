@@ -1,37 +1,50 @@
-// @flow
+/**
+ * @flow
+ * @prettier
+ */
 
-import {spawn} from 'promisify-child-process'
-import chalk from 'chalk'
+import AWS from 'aws-sdk'
 
-const maxItems = 100
-
-async function getEvents(stackName: string, startingToken: ?string = null): Promise<Object> {
-  const args = [
-    'cloudformation', 'describe-stack-events', '--stack-name', stackName,
-    '--max-items', maxItems,
-  ]
-  if (startingToken) args.push('--starting-token', startingToken)
-  console.error(chalk.gray(`$ aws ${args.join(' ')}`)) // eslint-disable-line no-console
-  // $FlowFixMe: ok to await spawn
-  return JSON.parse((await spawn('aws', args)).stdout.toString('utf8'))
+type StackEvent = {
+  StackId: string,
+  EventId: string,
+  StackName: string,
+  LogicalResourceId: string,
+  PhysicalResourceId: string,
+  ResourceType: string,
+  Timestamp: string,
+  ResourceStatus: string,
+  ResourceStatusReason?: string,
+  ResourceProperties?: string,
 }
 
-async function getCurrentStackEvents(stackName: string): Promise<Array<any>> {
-  const events = []
-  let result = await getEvents(stackName)
-  let foundNonStackEvent = false
+export default async function* getCurrentStackEvents({
+  cloudformation,
+  StackName,
+}: {
+  cloudformation?: ?AWS.CloudFormation,
+  StackName: string,
+}): AsyncIterable<StackEvent> {
+  if (!StackName) throw new Error('missing StackName')
+  if (!cloudformation) cloudformation = new AWS.CloudFormation()
+  let StackEvents, NextToken
+  let count = 0
   do {
-    for (let event of result.StackEvents) {
-      if ('AWS::CloudFormation::Stack' === event.ResourceType) {
-        if (foundNonStackEvent) return events
-      } else {
-        foundNonStackEvent = true
+    const options = { StackName }
+    if (NextToken) (options: any).NextToken = NextToken
+    ;({ StackEvents, NextToken } = await cloudformation
+      .describeStackEvents(options)
+      .promise())
+    for (let event of StackEvents) {
+      if (
+        'AWS::CloudFormation::Stack' === event.ResourceType &&
+        /_COMPLETE$/.test(event.ResourceStatus) &&
+        count > 0
+      ) {
+        return
       }
-      events.push(event)
+      count++
+      yield event
     }
-    if (result.NextToken) result = await getEvents(stackName, result.NextToken)
-  } while (result.NextToken)
-  return events
+  } while (NextToken)
 }
-
-export default getCurrentStackEvents
