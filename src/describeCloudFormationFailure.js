@@ -37,7 +37,7 @@ export default async function describeCloudFormationFailure(options: {
   const stream = options.stream || process.stderr
   const padding = 25
 
-  for await (let event of getCurrentStackEvents({
+  for (let event of await getCurrentStackEvents({
     cloudformation,
     StackName,
   })) {

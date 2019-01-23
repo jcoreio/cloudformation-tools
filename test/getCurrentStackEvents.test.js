@@ -224,14 +224,11 @@ describe(`getCurrentStackEvents`, function() {
       },
     }
 
-    const currentEvents = []
-    for await (let event of getCurrentStackEvents({
-      cloudformation,
-      StackName: 'foo',
-    })) {
-      currentEvents.push(event)
-    }
-
-    expect(currentEvents).to.deep.equal(events.slice(0, 3))
+    expect(
+      await getCurrentStackEvents({
+        cloudformation,
+        StackName: 'foo',
+      })
+    ).to.deep.equal(events.slice(0, 3))
   })
 })

@@ -18,15 +18,16 @@ type StackEvent = {
   ResourceProperties?: string,
 }
 
-export default async function* getCurrentStackEvents({
+export default async function getCurrentStackEvents({
   cloudformation,
   StackName,
 }: {
   cloudformation?: ?AWS.CloudFormation,
   StackName: string,
-}): AsyncIterable<StackEvent> {
+}): Promise<Array<StackEvent>> {
   if (!StackName) throw new Error('missing StackName')
   if (!cloudformation) cloudformation = new AWS.CloudFormation()
+  const events = []
   let StackEvents, NextToken
   let count = 0
   do {
@@ -41,10 +42,11 @@ export default async function* getCurrentStackEvents({
         /_COMPLETE$/.test(event.ResourceStatus) &&
         count > 0
       ) {
-        return
+        return events
       }
       count++
-      yield event
+      events.push(event)
     }
   } while (NextToken)
+  return events
 }

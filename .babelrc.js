@@ -17,7 +17,6 @@ module.exports = function(api) {
   ]
 
   if (api.env(['test', 'coverage', 'es5'])) {
-    plugins.push('@babel/plugin-proposal-async-generator-functions')
     plugins.push('@babel/plugin-transform-runtime')
   }
   if (api.env('coverage')) {

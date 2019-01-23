@@ -174,7 +174,8 @@ The name or unique id of a stack to get events of
 
 ### Returns
 
-A `AsyncIterable` that yields stack events.
+A `Promise` that resolves to an array of all the stack events from the most
+recent changeset, or rejects if it failed to get all the events.
 
 ## `watchStackResources(options)`
 
