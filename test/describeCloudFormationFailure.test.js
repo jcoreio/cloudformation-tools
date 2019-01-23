@@ -188,9 +188,7 @@ describe(`describeCloudFormationFailure`, function() {
             const start = NextToken || 0
             const end = Math.min(events.length, start + 3)
             const StackEvents = events.slice(start, end)
-            const result = { StackEvents }
-            if (end < events.length) result.NextToken = end
-            return result
+            return { StackEvents, NextToken: end < events.length ? end : null }
           },
         }
       },

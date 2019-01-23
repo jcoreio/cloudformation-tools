@@ -258,9 +258,10 @@ describe(`getStackResources`, function() {
             const start = NextToken || 0
             const end = Math.min(resources.length, start + 3)
             const StackResourceSummaries = resources.slice(start, end)
-            const result = { StackResourceSummaries }
-            if (end < resources.length) result.NextToken = end
-            return result
+            return {
+              StackResourceSummaries,
+              NextToken: end < resources.length ? end : null,
+            }
           },
         }
       },
