@@ -2,7 +2,7 @@
  * @prettier
  */
 
-import chalk from 'chalk'
+import stripAnsi from 'strip-ansi'
 import { describeCloudFormationFailure } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
@@ -202,16 +202,17 @@ describe(`describeCloudFormationFailure`, function() {
       StackName: 'foo',
     })
 
-    expect(output.join('').trim()).to
-      .equal(chalk`ResourceStatus            {red UPDATE_ROLLBACK_IN_PROGRESS}
+    expect(stripAnsi(output.join('').trim())).to.equal(
+      `ResourceStatus            UPDATE_ROLLBACK_IN_PROGRESS
 ResourceType              AWS::CloudFormation::Stack
-LogicalResourceId         {bold clarity-master}
-PhysicalResourceId        {bold XXXX}
+LogicalResourceId         clarity-master
+PhysicalResourceId        XXXX
 ResourceStatusReason
-  {bold Parameter validation failed: parameter value undefined for parameter name}
-  {bold DBSecurityGroup does not exist, parameter value undefined for parameter name}
-  {bold RedisSecurityGroup does not exist, parameter value undefined for parameter name}
-  {bold HistorianDBServersAccessSecurityGroup does not}
-  {bold exist}`)
+  Parameter validation failed: parameter value undefined for parameter name
+  DBSecurityGroup does not exist, parameter value undefined for parameter name
+  RedisSecurityGroup does not exist, parameter value undefined for parameter name
+  HistorianDBServersAccessSecurityGroup does not
+  exist`
+    )
   })
 })
