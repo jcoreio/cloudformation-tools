@@ -32,9 +32,11 @@ export default async function* getCurrentStackEvents({
   do {
     const options = { StackName }
     if (NextToken) (options: any).NextToken = NextToken
+    console.error('getting events', options) // eslint-disable-line no-console
     ;({ StackEvents, NextToken } = await cloudformation
       .describeStackEvents(options)
       .promise())
+    console.error(`got ${StackEvents.length} events, NextToken:`, NextToken) // eslint-disable-line no-console
     for (let event of StackEvents) {
       if (
         'AWS::CloudFormation::Stack' === event.ResourceType &&
