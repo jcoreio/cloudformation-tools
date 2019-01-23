@@ -4,7 +4,7 @@
  * @prettier
  */
 
-console.log('node', process.version)
+console.log('node', process.version) // eslint-disable-line no-console
 
 import type AWS from 'aws-sdk'
 import type { Writable } from 'stream'
