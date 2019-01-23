@@ -59,10 +59,10 @@ export default async function describeCloudFormationFailure(options: {
     const { ResourceStatusReason, ResourceProperties } = event
     if (ResourceStatusReason) {
       stream.write('ResourceStatusReason\n')
-      for (let line of wrapString(
-        ResourceStatusReason,
-        Math.min(80, (process.stdout: any).columns - 2)
-      )) {
+      const width = Number.isFinite((process.stdout: any).columns)
+        ? Math.min(80, (process.stdout: any).columns - 2)
+        : 80
+      for (let line of wrapString(ResourceStatusReason, width)) {
         stream.write(chalk`  {bold ${line}}\n`)
       }
     }
