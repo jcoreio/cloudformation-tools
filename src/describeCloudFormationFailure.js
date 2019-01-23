@@ -4,6 +4,8 @@
  * @prettier
  */
 
+console.log('node', process.version)
+
 import type AWS from 'aws-sdk'
 import type { Writable } from 'stream'
 import chalk from 'chalk'
