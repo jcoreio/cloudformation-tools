@@ -14,7 +14,12 @@ export default class Deployer {
   }
 
   async hasStack(StackName) {
-    const result = await this._client.describeStacks({ StackName }).promise()
+    let result
+    try {
+      result = await this._client.describeStacks({ StackName }).promise()
+    } catch (error) {
+      if (/stack.+does not exist/i.test(error.message)) return false
+    }
     if (result.Stacks.length !== 1) return false
 
     // When you run CreateChangeSet on a a stack that does not exist,
