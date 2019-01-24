@@ -4,8 +4,6 @@
  * @prettier
  */
 
-console.log('node', process.version) // eslint-disable-line no-console
-
 import type AWS from 'aws-sdk'
 import type { Writable } from 'stream'
 import chalk from 'chalk'
@@ -45,8 +43,17 @@ export default async function describeCloudFormationFailure(options: {
   })) {
     if (
       !/(CREATE|UPDATE)_FAILED|ROLLBACK_IN_PROGRESS/.test(event.ResourceStatus)
-    )
+    ) {
       continue
+    }
+    if (
+      event.ResourceStatusReason &&
+      /resource creation cancell?ed|the following resource\(?s?\)? failed/i.test(
+        event.ResourceStatusReason
+      )
+    ) {
+      continue
+    }
     stream.write(
       chalk`${padEnd('ResourceStatus', padding)} {red ${
         event.ResourceStatus
