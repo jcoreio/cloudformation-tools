@@ -30,6 +30,7 @@ export default function printStackResources({
   stream?: ?Writable,
   resources: $ReadOnlyArray<$ReadOnly<Resource>>,
 }) {
+  if (!resources.length) return
   if (!stream) stream = process.stderr
 
   const data = resources.map(
