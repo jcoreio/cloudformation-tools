@@ -24,6 +24,7 @@ type Tag = {
 export default async function deployCloudFormationStack({
   cloudformation,
   watchResources,
+  region,
   StackName,
   TemplateFile,
   TemplateBody,
@@ -35,6 +36,7 @@ export default async function deployCloudFormationStack({
 }: {
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
+  region?: ?string,
   StackName: string,
   TemplateFile?: ?string,
   TemplateBody?: ?string,
@@ -48,7 +50,8 @@ export default async function deployCloudFormationStack({
   ChangeSetType: string,
 }> {
   if (!StackName) throw new Error('missing StackName')
-  if (!cloudformation) cloudformation = new AWS.CloudFormation()
+  if (!cloudformation)
+    cloudformation = new AWS.CloudFormation(region ? { region } : {})
   const deployer = new Deployer(cloudformation)
 
   if (Parameters && !Array.isArray(Parameters)) {
