@@ -20,7 +20,7 @@ export default class Deployer {
     } catch (error) {
       if (/stack.+does not exist/i.test(error.message)) return false
     }
-    if (result.Stacks.length !== 1) return false
+    if (!result || result.Stacks.length !== 1) return false
 
     // When you run CreateChangeSet on a a stack that does not exist,
     // CloudFormation will create a stack and set it's status
