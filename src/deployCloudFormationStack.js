@@ -75,6 +75,7 @@ export default async function deployCloudFormationStack({
   const {
     ChangeSetName,
     ChangeSetType,
+    HasChanges,
   } = await deployer.createAndWaitForChangeSet({
     StackName,
     TemplateBody,
@@ -84,27 +85,29 @@ export default async function deployCloudFormationStack({
     NotificationARNs,
     Tags,
   })
-  let watchInterval: ?IntervalID
-  try {
-    await deployer.executeChangeSet({
-      ChangeSetName,
-      StackName,
-    })
-    watchInterval = watchResources
-      ? watchStackResources({ cloudformation, StackName })
-      : null
-    await deployer.waitForExecute({
-      StackName,
-      ChangeSetType,
-    })
-    return { ChangeSetName, ChangeSetType }
-  } catch (error) {
-    if (watchInterval != null) clearInterval(watchInterval)
-    await describeCloudFormationFailure({ cloudformation, StackName }).catch(
-      () => {}
-    )
-    throw error
-  } finally {
-    if (watchInterval != null) clearInterval(watchInterval)
+  if (HasChanges) {
+    let watchInterval: ?IntervalID
+    try {
+      await deployer.executeChangeSet({
+        ChangeSetName,
+        StackName,
+      })
+      watchInterval = watchResources
+        ? watchStackResources({ cloudformation, StackName })
+        : null
+      await deployer.waitForExecute({
+        StackName,
+        ChangeSetType,
+      })
+    } catch (error) {
+      if (watchInterval != null) clearInterval(watchInterval)
+      await describeCloudFormationFailure({ cloudformation, StackName }).catch(
+        () => {}
+      )
+      throw error
+    } finally {
+      if (watchInterval != null) clearInterval(watchInterval)
+    }
   }
+  return { ChangeSetName, ChangeSetType }
 }

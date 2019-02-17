@@ -146,7 +146,28 @@ export default class Deployer {
       s3Uploader,
       Tags,
     })
-    await this.waitForChangeSet({ ChangeSetName, StackName })
-    return { ChangeSetName, ChangeSetType }
+
+    const { Status, StatusReason } = await this._client
+      .describeChangeSet({ ChangeSetName, StackName })
+      .promise()
+    let HasChanges = true
+    if ('FAILED' === Status) {
+      if (
+        StatusReason.startsWith(
+          "The submitted information didn't contain changes"
+        )
+      ) {
+        process.stdout.write('CloudFormation stack is unchanged\n')
+        HasChanges = false
+      } else {
+        throw Error(
+          `Could not create CloudFormation change set: ${StatusReason}`
+        )
+      }
+    }
+
+    if (HasChanges) await this.waitForChangeSet({ ChangeSetName, StackName })
+
+    return { ChangeSetName, ChangeSetType, HasChanges }
   }
 }
