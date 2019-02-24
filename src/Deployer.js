@@ -92,6 +92,19 @@ export default class Deployer {
     return { ChangeSetName: Id, ChangeSetType }
   }
 
+  async describeChangeSet({
+    ChangeSetName,
+    StackName,
+  }: {
+    ChangeSetName: string,
+    StackName: string,
+  }) {
+    const { Changes } = await this._client
+      .describeChangeSet({ ChangeSetName, StackName })
+      .promise()
+    return Changes
+  }
+
   async waitForChangeSet({ ChangeSetName, StackName }) {
     process.stdout.write(
       `\nWaiting for changeset to be created - ${StackName}...\n`
