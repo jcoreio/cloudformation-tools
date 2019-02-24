@@ -3,6 +3,8 @@
  * @prettier
  */
 
+import readline from 'readline'
+import { inspect } from 'util'
 import AWS from 'aws-sdk'
 import fs from 'fs-extra'
 import Deployer from './Deployer'
@@ -25,6 +27,7 @@ export default async function deployCloudFormationStack({
   cloudformation,
   watchResources,
   region,
+  approve,
   StackName,
   TemplateFile,
   TemplateBody,
@@ -37,6 +40,7 @@ export default async function deployCloudFormationStack({
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
   region?: ?string,
+  approve?: ?boolean,
   StackName: string,
   TemplateFile?: ?string,
   TemplateBody?: ?string,
@@ -48,6 +52,8 @@ export default async function deployCloudFormationStack({
 }): Promise<{
   ChangeSetName: string,
   ChangeSetType: string,
+  HasChanges: boolean,
+  UserAborted: boolean,
 }> {
   if (!StackName) throw new Error('missing StackName')
   if (!cloudformation)
@@ -85,29 +91,60 @@ export default async function deployCloudFormationStack({
     NotificationARNs,
     Tags,
   })
+  let UserAborted = false
   if (HasChanges) {
-    let watchInterval: ?IntervalID
-    try {
-      await deployer.executeChangeSet({
+    if (approve) {
+      const changes = await deployer.describeChangeSet({
         ChangeSetName,
         StackName,
       })
-      watchInterval = watchResources
-        ? watchStackResources({ cloudformation, StackName })
-        : null
-      await deployer.waitForExecute({
-        StackName,
-        ChangeSetType,
-      })
-    } catch (error) {
-      if (watchInterval != null) clearInterval(watchInterval)
-      await describeCloudFormationFailure({ cloudformation, StackName }).catch(
-        () => {}
+      // eslint-disable-next-line no-console
+      console.log(
+        `Changes to stack:\n${inspect(changes, { colors: true, depth: 5 })}`
       )
-      throw error
-    } finally {
-      if (watchInterval != null) clearInterval(watchInterval)
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      })
+      await new Promise((resolve: () => any) => {
+        rl.question('Deploy stack? [y/n]:', (answer: string) => {
+          const answerLower = answer && answer.toLowerCase()
+          UserAborted = 'y' !== answerLower && 'yes' !== 'answerLower'
+          // eslint-disable-next-line no-console
+          console.log(
+            UserAborted ? 'OK, aborted deployment' : 'OK, deploying...'
+          )
+          rl.close()
+          resolve()
+        })
+      })
+    }
+
+    if (!UserAborted) {
+      let watchInterval: ?IntervalID
+      try {
+        await deployer.executeChangeSet({
+          ChangeSetName,
+          StackName,
+        })
+        watchInterval = watchResources
+          ? watchStackResources({ cloudformation, StackName })
+          : null
+        await deployer.waitForExecute({
+          StackName,
+          ChangeSetType,
+        })
+      } catch (error) {
+        if (watchInterval != null) clearInterval(watchInterval)
+        await describeCloudFormationFailure({
+          cloudformation,
+          StackName,
+        }).catch(() => {})
+        throw error
+      } finally {
+        if (watchInterval != null) clearInterval(watchInterval)
+      }
     }
   }
-  return { ChangeSetName, ChangeSetType }
+  return { ChangeSetName, ChangeSetType, HasChanges, UserAborted }
 }
