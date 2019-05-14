@@ -63,11 +63,14 @@ export default async function deployCloudFormationStack({
   if (Parameters && !Array.isArray(Parameters)) {
     Parameters = map(Parameters, (value, key) => ({
       ParameterKey: key,
-      ParameterValue: String(value),
+      ParameterValue: value == null ? null : String(value),
     }))
   }
   if (Tags && !Array.isArray(Tags)) {
-    Tags = map(Tags, (Value, Key) => ({ Key, Value: String(Value) }))
+    Tags = map(Tags, (Value, Key) => ({
+      Key,
+      Value: Value == null ? null : String(Value),
+    }))
   }
 
   if (!TemplateBody) {
