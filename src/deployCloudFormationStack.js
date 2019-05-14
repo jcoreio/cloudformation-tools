@@ -11,6 +11,8 @@ import Deployer from './Deployer'
 import describeCloudFormationFailure from './describeCloudFormationFailure'
 import watchStackResources from './watchStackResources'
 import { map } from 'lodash'
+import { type Readable } from 'stream'
+import S3Uploader from './S3Uploader'
 
 type Parameter = {
   ParameterKey: string,
@@ -36,6 +38,7 @@ export default async function deployCloudFormationStack({
   RoleARN,
   NotificationARNs,
   Tags,
+  s3,
 }: {
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
@@ -43,12 +46,18 @@ export default async function deployCloudFormationStack({
   approve?: ?boolean,
   StackName: string,
   TemplateFile?: ?string,
-  TemplateBody?: ?string,
+  TemplateBody?: ?(Buffer | string | (() => Readable)),
   Parameters?: ?({ [string]: any } | Array<Parameter>),
   Capabilities?: ?Array<string>,
   RoleARN?: ?string,
   NotificationARNs?: ?Array<string>,
   Tags?: ?({ [string]: any } | Array<Tag>),
+  s3?: {
+    Bucket: string,
+    prefix?: ?string,
+    SSEKMSKeyId?: ?string,
+    forceUpload?: ?boolean,
+  },
 }): Promise<{
   ChangeSetName: string,
   ChangeSetType: string,
@@ -73,9 +82,15 @@ export default async function deployCloudFormationStack({
     })).filter(t => t.Value != null)
   }
 
+  const s3Uploader = s3
+    ? new S3Uploader({ ...s3, s3: new AWS.S3(region ? { region } : {}) })
+    : null
+
   if (!TemplateBody) {
     if (TemplateFile) {
-      TemplateBody = await fs.readFile(TemplateFile, 'utf8')
+      TemplateBody = s3Uploader
+        ? () => fs.createReadStream(TemplateFile, 'utf8')
+        : await fs.readFile(TemplateFile, 'utf8')
     } else {
       throw new Error(`TemplateBody or TemplateFile is required`)
     }
@@ -93,6 +108,7 @@ export default async function deployCloudFormationStack({
     RoleARN,
     NotificationARNs,
     Tags,
+    s3Uploader,
   })
   let UserAborted = false
   if (HasChanges) {
