@@ -27,10 +27,6 @@ as they are getting created/updated
 (if you set `watchResources: true`), and if the update
 fails, it will log the failure events.
 
-### WARNING about large templates
-
-Uploading templates to S3 that are too large to be passed inline isn't implemented yet (the `aws cloudformation deploy` CLI does this.)
-
 ### `options` object
 
 #### `cloudformation` (`AWS.CloudFormation`, _optional_)
@@ -76,6 +72,10 @@ The Amazon Resource Names (ARNs) of Amazon Simple Notification Service (Amazon S
 #### `Tags` (`{[string]: any} | Array<{Key: string, Value: string}`, _optional_)
 
 Key-value pairs to associate with this stack. AWS CloudFormation also propagates these tags to resources in the stack. You can specify a maximum of 50 tags.
+
+#### `s3` (`{ Bucket: string, prefix?: ?string, SSEKMSKeyId?: ?string, forceUpload?: ?boolean }`, _optional_)
+
+If given, will upload the template body the given S3 bucket.
 
 ### Returns
 
