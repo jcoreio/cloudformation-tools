@@ -2,6 +2,8 @@
  * @prettier
  */
 
+import { parseS3Url } from './S3Uploader'
+
 /**
  * Adapted from https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation/deployer.py
  * on 2019-01-21
@@ -81,8 +83,16 @@ export default class Deployer {
     // If an S3 uploader is available, use TemplateURL to deploy rather than
     // TemplateBody. This is required for large templates.
     if (s3Uploader) {
+      const url = await s3Uploader.uploadWithDedup({
+        Body: TemplateBody,
+        extension: 'template',
+      })
+      const { Key, versionId } = parseS3Url(url)
+      params.TemplateURL = s3Uploader.toPathStyleS3Url(Key, versionId)
+      delete params.TemplateBody
+    } else if (typeof TemplateBody === 'function') {
       throw new Error(
-        `not implemented yet; adapt s3_uploader code from aws-cli if necessary`
+        'TemplateBody: () => stream.Readable is not supported without s3Uploader option'
       )
     }
     if (RoleARN) params.RoleARN = RoleARN
@@ -106,7 +116,7 @@ export default class Deployer {
   }
 
   async waitForChangeSet({ ChangeSetName, StackName }) {
-    process.stdout.write(
+    process.stderr.write(
       `\nWaiting for changeset to be created - ${StackName}...\n`
     )
     await this._client
@@ -127,7 +137,7 @@ export default class Deployer {
   }
 
   async waitForExecute({ StackName, ChangeSetType }) {
-    process.stdout.write('Waiting for stack create/update to complete\n')
+    process.stderr.write('Waiting for stack create/update to complete\n')
     await this._client
       .waitFor(
         ChangeSetType === 'CREATE'
@@ -136,7 +146,7 @@ export default class Deployer {
         { StackName }
       )
       .promise()
-    process.stdout.write(`Successfully created/updated stack - ${StackName}\n`)
+    process.stderr.write(`Successfully created/updated stack - ${StackName}\n`)
   }
 
   async createAndWaitForChangeSet({
@@ -170,7 +180,7 @@ export default class Deployer {
           "The submitted information didn't contain changes"
         )
       ) {
-        process.stdout.write('CloudFormation stack is unchanged\n')
+        process.stderr.write('CloudFormation stack is unchanged\n')
         HasChanges = false
       } else {
         throw Error(
