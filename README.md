@@ -27,6 +27,10 @@ as they are getting created/updated
 (if you set `watchResources: true`), and if the update
 fails, it will log the failure events.
 
+### WARNING about large templates
+
+Uploading templates to S3 that are too large to be passed inline isn't implemented yet (the `aws cloudformation deploy` CLI does this.)
+
 ### `options` object
 
 #### `cloudformation` (`AWS.CloudFormation`, _optional_)
