@@ -102,19 +102,19 @@ export default async function deployCloudFormationStack({
         StackName,
       })
       // eslint-disable-next-line no-console
-      console.log(
+      console.error(
         `Changes to stack:\n${inspect(changes, { colors: true, depth: 5 })}`
       )
       const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout,
+        output: process.stderr,
       })
       await new Promise((resolve: () => any) => {
         rl.question('Deploy stack? [y/n]:', (answer: string) => {
           const answerLower = answer && answer.toLowerCase()
           UserAborted = 'y' !== answerLower && 'yes' !== 'answerLower'
           // eslint-disable-next-line no-console
-          console.log(
+          console.error(
             UserAborted ? 'OK, aborted deployment' : 'OK, deploying...'
           )
           rl.close()

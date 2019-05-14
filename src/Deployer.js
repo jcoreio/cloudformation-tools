@@ -106,7 +106,7 @@ export default class Deployer {
   }
 
   async waitForChangeSet({ ChangeSetName, StackName }) {
-    process.stdout.write(
+    process.stderr.write(
       `\nWaiting for changeset to be created - ${StackName}...\n`
     )
     await this._client
@@ -127,7 +127,7 @@ export default class Deployer {
   }
 
   async waitForExecute({ StackName, ChangeSetType }) {
-    process.stdout.write('Waiting for stack create/update to complete\n')
+    process.stderr.write('Waiting for stack create/update to complete\n')
     await this._client
       .waitFor(
         ChangeSetType === 'CREATE'
@@ -136,7 +136,7 @@ export default class Deployer {
         { StackName }
       )
       .promise()
-    process.stdout.write(`Successfully created/updated stack - ${StackName}\n`)
+    process.stderr.write(`Successfully created/updated stack - ${StackName}\n`)
   }
 
   async createAndWaitForChangeSet({
@@ -170,7 +170,7 @@ export default class Deployer {
           "The submitted information didn't contain changes"
         )
       ) {
-        process.stdout.write('CloudFormation stack is unchanged\n')
+        process.stderr.write('CloudFormation stack is unchanged\n')
         HasChanges = false
       } else {
         throw Error(
