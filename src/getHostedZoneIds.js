@@ -2,8 +2,9 @@
 
 import AWS from 'aws-sdk'
 
-function extractId(id: string): string {
-  return id.substring(id.lastIndexOf('/') + 1)
+function extractId(zone: ?Object): ?string {
+  const id = zone && zone.Id
+  return id ? id.substring(id.lastIndexOf('/') + 1) : null
 }
 
 export default async function getHostedZoneIds({
@@ -15,27 +16,29 @@ export default async function getHostedZoneIds({
 }): Promise<{ publicZone: string, privateZone: string }> {
   if (!domain) throw Error(`domain is required`)
   const { HostedZones } = await new AWS.Route53({ region })
-    .listHostedZonesByName({
-      DNSName: domain,
-    })
+    .listHostedZonesByName()
     .promise()
-  let publicZone = null
-  let privateZone = null
-  HostedZones.forEach(({ Config, Id }) => {
-    if (!Config) return
-    if (Config.PrivateZone === true) {
-      privateZone = extractId(Id)
-    } else {
-      publicZone = extractId(Id)
-    }
-  })
-  if (!publicZone)
-    throw new Error(
-      `Public zone not found in ${JSON.stringify(HostedZones, null, 2)}`
-    )
-  if (!privateZone)
-    throw new Error(
-      `Private zone not found in ${JSON.stringify(HostedZones, null, 2)}`
+  // domain names in result set are suffixed with dots
+  const searchDomain = domain.endsWith('.') ? domain : `${domain}.`
+  const thisDomainZones = HostedZones.filter(
+    ({ Name }) => Name === searchDomain
+  )
+  const publicZone = extractId(
+    thisDomainZones.find(({ Config }) => !Config.PrivateZone)
+  )
+  const privateZone = extractId(
+    thisDomainZones.find(({ Config }) => Config.PrivateZone)
+  )
+  const errors = []
+  if (!publicZone) errors.push('public zone not found')
+  if (!privateZone) errors.push('private zone not found')
+  if (errors.length)
+    throw Error(
+      `${errors.join(', ')} for domain ${domain}. Zones: ${JSON.stringify(
+        HostedZones,
+        null,
+        2
+      )}`
     )
   return { publicZone, privateZone }
 }
