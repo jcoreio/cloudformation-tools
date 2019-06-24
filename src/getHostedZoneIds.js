@@ -15,13 +15,20 @@ export default async function getHostedZoneIds({
   region: String,
 }): Promise<{ publicZone: string, privateZone: string }> {
   if (!domain) throw Error(`domain is required`)
+  const domainClean = domain.endsWith('.')
+    ? domain.substr(0, domain.length - 1)
+    : domain
+  if (!domainClean) throw Error(`domain must not be just a trailing dot`)
   const { HostedZones } = await new AWS.Route53({ region })
-    .listHostedZonesByName()
+    .listHostedZonesByName({
+      DNSName: domainClean,
+      MaxItems: '2',
+    })
     .promise()
-  // domain names in result set are suffixed with dots
-  const searchDomain = domain.endsWith('.') ? domain : `${domain}.`
+  // DNSName above is a pagination parameter, not a filtering parameter. So we still
+  // need to match the domain name. The returned domain names are suffixed with dots.
   const thisDomainZones = HostedZones.filter(
-    ({ Name }) => Name === searchDomain
+    ({ Name }) => Name === `${domainClean}.`
   )
   const publicZone = extractId(
     thisDomainZones.find(({ Config }) => !Config.PrivateZone)
