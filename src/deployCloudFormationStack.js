@@ -128,7 +128,7 @@ export default async function deployCloudFormationStack({
       await new Promise((resolve: () => any) => {
         rl.question('Deploy stack? [y/n]:', (answer: string) => {
           const answerLower = answer && answer.toLowerCase()
-          UserAborted = 'y' !== answerLower && 'yes' !== 'answerLower'
+          UserAborted = 'y' !== answerLower && 'yes' !== answerLower
           // eslint-disable-next-line no-console
           console.error(
             UserAborted ? 'OK, aborted deployment' : 'OK, deploying...'
