@@ -115,16 +115,66 @@ export default class Deployer {
     return Changes
   }
 
-  async waitForChangeSet({ ChangeSetName, StackName }) {
+  async waitForChangeSet({
+    ChangeSetName,
+    StackName,
+  }): Promise<{ HasChanges: boolean }> {
     process.stderr.write(
       `\nWaiting for changeset to be created - ${StackName}...\n`
     )
-    await this._client
-      .waitFor('changeSetCreateComplete', {
-        ChangeSetName,
-        StackName,
-      })
-      .promise()
+    let retriesRemaining = 20
+    let done = false
+    let HasChanges = true
+    do {
+      if (--retriesRemaining <= 0)
+        throw Error('timed out waiting for changeset to be created')
+
+      const { Summaries } = await this._client
+        .listChangeSets({
+          StackName,
+        })
+        .promise()
+
+      const thisChangeSetInfo = Summaries.find(
+        row => ChangeSetName === row.ChangeSetId
+      )
+      if (thisChangeSetInfo) {
+        const { Status, StatusReason } = thisChangeSetInfo
+        switch (Status) {
+          case 'CREATE_COMPLETE':
+            done = true
+            break
+          case 'CREATE_PENDING':
+          case 'CREATE_IN_PROGRESS':
+            break
+          case 'DELETE_COMPLETE':
+            throw Error(
+              `unexpected DELETE_COMPLETE status for ChangeSet ${ChangeSetName}`
+            )
+          case 'FAILED':
+            if (
+              StatusReason &&
+              StatusReason.toLowerCase().startsWith(
+                'no updates are to be performed'
+              )
+            ) {
+              done = true
+              HasChanges = false
+            } else {
+              throw Error(
+                `ChangeSet ${ChangeSetName} failed to create: ${StatusReason}`
+              )
+            }
+            break
+          default:
+            throw Error(`unexpected ChangeSet Status: ${Status}`)
+        }
+      }
+      if (!done) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    } while (!done)
+    return { HasChanges }
   }
 
   async executeChangeSet({ ChangeSetName, StackName }) {
@@ -170,26 +220,19 @@ export default class Deployer {
       Tags,
     })
 
-    const { Status, StatusReason } = await this._client
-      .describeChangeSet({ ChangeSetName, StackName })
-      .promise()
-    let HasChanges = true
-    if ('FAILED' === Status) {
-      if (
-        StatusReason.startsWith(
-          "The submitted information didn't contain changes"
-        )
-      ) {
-        process.stderr.write('CloudFormation stack is unchanged\n')
-        HasChanges = false
-      } else {
-        throw Error(
-          `Could not create CloudFormation change set: ${StatusReason}`
-        )
-      }
-    }
+    const { HasChanges } = await this.waitForChangeSet({
+      ChangeSetName,
+      StackName,
+    })
 
-    if (HasChanges) await this.waitForChangeSet({ ChangeSetName, StackName })
+    if (!HasChanges) {
+      await this._client
+        .deleteChangeSet({
+          StackName,
+          ChangeSetName,
+        })
+        .promise()
+    }
 
     return { ChangeSetName, ChangeSetType, HasChanges }
   }

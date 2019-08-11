@@ -164,6 +164,9 @@ export default async function deployCloudFormationStack({
         if (watchInterval != null) clearInterval(watchInterval)
       }
     }
+  } else {
+    // eslint-disable-next-line no-console
+    console.log('stack is already in the desired state')
   }
   return { ChangeSetName, ChangeSetType, HasChanges, UserAborted }
 }
