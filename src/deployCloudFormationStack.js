@@ -69,7 +69,9 @@ export default async function deployCloudFormationStack({
     cloudformation = new AWS.CloudFormation(region ? { region } : {})
   const deployer = new Deployer(cloudformation)
 
-  if (Parameters && !Array.isArray(Parameters)) {
+  if (!Parameters) {
+    Parameters = []
+  } else if (Parameters && !Array.isArray(Parameters)) {
     Parameters = map(Parameters, (value, key) => ({
       ParameterKey: key,
       ParameterValue: value == null ? null : String(value),
