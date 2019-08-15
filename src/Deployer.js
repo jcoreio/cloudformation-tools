@@ -152,18 +152,21 @@ export default class Deployer {
               `unexpected DELETE_COMPLETE status for ChangeSet ${ChangeSetName}`
             )
           case 'FAILED':
-            if (
-              StatusReason &&
-              StatusReason.toLowerCase().startsWith(
-                'no updates are to be performed'
-              )
-            ) {
-              done = true
-              HasChanges = false
-            } else {
-              throw Error(
-                `ChangeSet ${ChangeSetName} failed to create: ${StatusReason}`
-              )
+            {
+              const statusLower = (StatusReason || '').toLowerCase()
+              if (
+                statusLower.startsWith('no updates are to be performed') ||
+                statusLower.startsWith(
+                  "the submitted information didn't contain changes"
+                )
+              ) {
+                done = true
+                HasChanges = false
+              } else {
+                throw Error(
+                  `ChangeSet ${ChangeSetName} failed to create: ${StatusReason}`
+                )
+              }
             }
             break
           default:
