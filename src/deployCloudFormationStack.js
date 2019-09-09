@@ -9,6 +9,7 @@ import AWS from 'aws-sdk'
 import fs from 'fs-extra'
 import Deployer from './Deployer'
 import describeCloudFormationFailure from './describeCloudFormationFailure'
+import getStackOutputs from './getStackOutputs'
 import watchStackResources from './watchStackResources'
 import { map } from 'lodash'
 import { type Readable } from 'stream'
@@ -31,6 +32,7 @@ export default async function deployCloudFormationStack({
   region,
   approve,
   StackName,
+  Template,
   TemplateFile,
   TemplateBody,
   Parameters,
@@ -39,12 +41,14 @@ export default async function deployCloudFormationStack({
   NotificationARNs,
   Tags,
   s3,
+  readOutputs,
 }: {
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
   region?: ?string,
   approve?: ?boolean,
   StackName: string,
+  Template?: ?Object,
   TemplateFile?: ?string,
   TemplateBody?: ?(Buffer | string | (() => Readable)),
   Parameters?: ?({ [string]: any } | Array<Parameter>),
@@ -58,11 +62,13 @@ export default async function deployCloudFormationStack({
     SSEKMSKeyId?: ?string,
     forceUpload?: ?boolean,
   },
+  readOutputs?: ?boolean,
 }): Promise<{
   ChangeSetName: string,
   ChangeSetType: string,
   HasChanges: boolean,
   UserAborted: boolean,
+  Outputs: { [resourceName: string]: string },
 }> {
   if (!StackName) throw new Error('missing StackName')
   if (!cloudformation)
@@ -89,12 +95,14 @@ export default async function deployCloudFormationStack({
     : null
 
   if (!TemplateBody) {
-    if (TemplateFile) {
+    if (Template) {
+      TemplateBody = JSON.stringify(Template, null, 2)
+    } else if (TemplateFile) {
       TemplateBody = s3Uploader
         ? () => fs.createReadStream(TemplateFile, 'utf8')
         : await fs.readFile(TemplateFile, 'utf8')
     } else {
-      throw new Error(`TemplateBody or TemplateFile is required`)
+      throw new Error(`Template, TemplateFile or TemplateBody is required`)
     }
   }
 
@@ -170,5 +178,15 @@ export default async function deployCloudFormationStack({
     // eslint-disable-next-line no-console
     console.log('stack is already in the desired state')
   }
-  return { ChangeSetName, ChangeSetType, HasChanges, UserAborted }
+
+  const Outputs = readOutputs
+    ? await getStackOutputs({ region, StackName })
+    : {}
+  return {
+    ChangeSetName,
+    ChangeSetType,
+    HasChanges,
+    UserAborted,
+    Outputs,
+  }
 }
