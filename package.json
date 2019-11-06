@@ -21,6 +21,7 @@
     "test:watch": "cross-env NODE_ENV=production BABEL_ENV=test mocha --watch $npm_package_config_mocha",
     "test:debug": "cross-env NODE_ENV=production BABEL_ENV=test mocha --inspect-brk $npm_package_config_mocha",
     "codecov": "nyc report --reporter=text-lcov > coverage.lcov; codecov",
+    "prep": "npm run lint:fix && npm run prettier && flow && npm run test",
     "prepublishOnly": "yarn clean && yarn prettier:check && yarn lint && flow && yarn test && yarn build",
     "open:coverage": "open coverage/lcov-report/index.html",
     "semantic-release": "semantic-release",
@@ -121,6 +122,7 @@
     "chalk": "^2.4.2",
     "fs-extra": "^7.0.1",
     "lodash": "^4.17.11",
-    "table": "^5.2.1"
+    "table": "^5.2.1",
+    "verror": "^1.10.0"
   }
 }

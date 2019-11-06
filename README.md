@@ -38,6 +38,14 @@ An `AWS.CloudFormation` instance. Will create one with the default options if yo
 If truthy, will watch and print out resource status
 while the stack create/update is in progress
 
+#### `region` (`string`, _optional_)
+
+Destination AWS region for CloudFormation stack
+
+#### `approve` (`boolean`, _optional_)
+
+If `true`, lists changes and prompts for approval before deploying. Defaults to `false`.
+
 #### `StackName` (`string`, **required**)
 
 The name or the unique ID of the stack for which you are creating a change set. AWS CloudFormation generates the change set by comparing this stack's information with the information that you submit, such as a modified template or different parameter input values.
@@ -76,6 +84,10 @@ Key-value pairs to associate with this stack. AWS CloudFormation also propagates
 #### `s3` (`{ Bucket: string, prefix?: ?string, SSEKMSKeyId?: ?string, forceUpload?: ?boolean }`, _optional_)
 
 If given, will upload the template body the given S3 bucket.
+
+#### `readOutputs` (`boolean`, _optional_)
+
+If `true`, stack outputs will be read and returned in the `Outputs` property. Defaults to `false`.
 
 ### Returns
 
@@ -216,3 +228,62 @@ The resources to print out
 #### `stream` (`Writable`, _optional_)
 
 The stream to print to. Defaults to `process.stderr`.
+
+## `upsertSecurityGroup(options)`
+
+Ensures that a security group with the specified name exists in the VPC, creating
+it if needed.
+
+### `options` object
+
+#### `securityGroupName` (`string`, **required**)
+
+Name of the security group
+
+#### `securityGroupDescription` (`string`, _optional_)
+
+Description to use when creating the security group
+
+#### `vpcId` (`string`, **required**)
+
+ID of the VPC. Required because security groups exist within a VPC.
+
+#### `ec2` (`AWS.EC2`, **conditional**)
+
+Optional EC2 class instance to use for API calls. If no EC2 class instance
+is provided, one will be created using the `region` property. Either
+`ec2` or `region` must be provided.
+
+#### `region` (`string`, **conditional**)
+
+AWS region. Either `ec2` or `region` must be provided.
+
+### Returns
+
+A `Promise` that resolves to a `{securityGroupId}` object, or rejects if it failed to
+ensure the security group exists.
+
+## `getVPCIdBySubnetId(options)`
+
+Ensures that a security group with the specified name exists in the VPC, creating
+it if needed.
+
+### `options` object
+
+#### `subnetId` (`string`, **required**)
+
+ID of the subnet
+
+#### `ec2` (`AWS.EC2`, **conditional**)
+
+Optional EC2 class instance to use for API calls. If no EC2 class instance
+is provided, one will be created using the `region` property. Either
+`ec2` or `region` must be provided.
+
+#### `region` (`string`, **conditional**)
+
+AWS region. Either `ec2` or `region` must be provided.
+
+### Returns
+
+A `Promise` that resolves to a `string` with the ID of the VPC
