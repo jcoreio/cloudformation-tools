@@ -31,6 +31,7 @@ async function copyECRImage({
   accessRole,
   externalId,
   ecrOptions,
+  forceCopy,
 }) {
   const match = /(\d+)\.dkr\.ecr\.(.+?)\.amazonaws\.com\/(.+?):(.+)/.exec(
     sourceImage
@@ -66,7 +67,8 @@ async function copyECRImage({
   console.error(
     `image ${imageExists ? 'exists' : 'does not exist'} in your ECR`
   )
-  if (!imageExists) {
+  const doCopy = !!forceCopy || !imageExists
+  if (doCopy) {
     const externalECROptions = { region: sourceRegion }
 
     if (accessRole) {
@@ -115,7 +117,7 @@ async function copyECRImage({
 
   const destImage = `${repositoryUri}:${imageTag}`
 
-  if (!imageExists) {
+  if (doCopy) {
     await loginToECR({ ecr, registryIds: [registryId] })
     await spawn('docker', ['tag', sourceImage, destImage])
     await spawn('docker', ['push', destImage], { stdio: 'inherit' })
