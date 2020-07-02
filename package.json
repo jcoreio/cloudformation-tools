@@ -10,8 +10,8 @@
     "lint": "eslint src test --cache",
     "lint:fix": "eslint --fix src test --cache",
     "lint:watch": "esw --watch src test --cache",
-    "prettier": "prettier --write src/**/*.js test/**/*.js",
-    "prettier:check": "prettier --list-different src/**/*.js test/**/*.js",
+    "prettier": "prettier --write *.json *.md *.js *.ts '{src,test}/**/*.js'",
+    "prettier:check": "prettier --list-different *.json *.md *.js *.ts '{src,test}/**/*.js'",
     "flow": "flow",
     "flow:coverage": "for file in src/**.js test/**.js; do echo $file; flow coverage $file; done",
     "flow:watch": "flow-watch -e js,js.flow,flowconfig --ignore es/ --ignore node_modules/ --watch .flowconfig --watch src/ --watch test/",
@@ -21,21 +21,20 @@
     "test:watch": "cross-env NODE_ENV=production BABEL_ENV=test mocha --watch $npm_package_config_mocha",
     "test:debug": "cross-env NODE_ENV=production BABEL_ENV=test mocha --inspect-brk $npm_package_config_mocha",
     "codecov": "nyc report --reporter=text-lcov > coverage.lcov; codecov",
-    "prep": "npm run lint:fix && npm run prettier && flow && npm run test",
-    "prepublishOnly": "yarn clean && yarn prettier:check && yarn lint && flow && yarn test && yarn build",
+    "prepublishOnly": "yarn clean && yarn prettier:check && yarn lint && flow && tsc && yarn test && yarn build",
     "open:coverage": "open coverage/lcov-report/index.html",
     "semantic-release": "semantic-release",
     "travis-deploy-once": "travis-deploy-once"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged && yarn lint && flow",
+      "pre-commit": "lint-staged && yarn lint && flow && tsc",
       "commit-msg": "commitlint -e $GIT_PARAMS",
       "pre-push": "yarn test"
     }
   },
   "lint-staged": {
-    "*.{js,json,css,md}": [
+    "*.{js,json,css,md,ts}": [
       "prettier --write",
       "git add"
     ]
@@ -113,10 +112,12 @@
     "rimraf": "^2.6.0",
     "semantic-release": "^15.13.3",
     "strip-ansi": "^5.0.0",
-    "travis-deploy-once": "^5.0.11"
+    "travis-deploy-once": "^5.0.11",
+    "typescript": "^3.9.6"
   },
   "dependencies": {
     "@babel/runtime": "^7.1.5",
+    "@types/node": "^14.0.14",
     "ansi-escapes": "^3.1.0",
     "aws-sdk": "^2.392.0",
     "chalk": "^2.4.2",
