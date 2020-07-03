@@ -18,6 +18,7 @@ export default function deployCloudFormationStack(options: {
   region?: string | null | undefined
   approve?: boolean | null | undefined
   StackName: string
+  Template?: Record<string, any> | null | undefined
   TemplateFile?: string | null | undefined
   TemplateBody?: Buffer | string | (() => Readable) | null | undefined
   Parameters?: Record<string, any> | Array<Parameter> | null | undefined
