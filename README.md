@@ -196,16 +196,20 @@ A `AsyncIterable` that yields stack events.
 
 ### `options` object
 
-Prints out a stack's resources and their status in a
+Prints out one or more stacks' resources and their status in a
 table every 5 seconds, or on an interval you specify.
 
 #### `cloudformation` (`AWS.CloudFormation`, _optional_)
 
 An `AWS.CloudFormation` instance. Will create one with the default options if you don't provide one
 
-#### `StackName` (`string`, **required**)
+#### `StackName` (`string`, `StackName` or `StackNames` is **required**)
 
 The name or unique id of a stack to watch
+
+#### `StackNames` (`Array<string>`, `StackName` or `StackNames` is **required**)
+
+The names or unique ids of stacks to watch
 
 #### `delay` (`number`, _optional_)
 
