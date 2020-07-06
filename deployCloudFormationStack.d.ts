@@ -32,9 +32,12 @@ export default function deployCloudFormationStack(options: {
     SSEKMSKeyId?: string | null | undefined
     forceUpload?: boolean | null | undefined
   }
+  readOutputs?: boolean | null | undefined
+  signalWatchable?: (() => any) | null | undefined
 }): Promise<{
   ChangeSetName: string
   ChangeSetType: string
   HasChanges: boolean
   UserAborted: boolean
+  Outputs: Record<string, string>
 }>

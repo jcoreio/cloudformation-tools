@@ -8,6 +8,7 @@
 # API
 
 - [`deployCloudFormationStack(options)`](#deploycloudformationstackoptions)
+- [`deployCloudFormationStacks(options)`](#deploycloudformationstacksoptions)
 - [`describeCloudFormationFailure(options)`](#describecloudformationfailureoptions)
 - [`getStackOutputs(options)`](#getstackoutputsoptions)
 - [`getStackResources(options)`](#getstackresourcesoptions)
@@ -89,9 +90,43 @@ If given, will upload the template body the given S3 bucket.
 
 If `true`, stack outputs will be read and returned in the `Outputs` property. Defaults to `false`.
 
+#### `signalWatchable` (`() => mixed`, _optional_)
+
+If given, this function will be called once the stack create/update is ready to be watched.
+
 ### Returns
 
 A `Promise` that resolves or rejects when the deployment succeeds or fails
+
+## `deployCloudFormationStacks(options)`
+
+```js
+import { deployCloudFormationStacks } from '@jcoreio/cloudformation-tools'
+```
+
+Deploys multiple stacks in parallel.
+
+#### `stacks` (`Array`, **required**)
+
+An array of arguments for `deployCloudFormationStack`, without the other options below or the `approve` option.
+
+#### `cloudformation` (`AWS.CloudFormation`, _optional_)
+
+An `AWS.CloudFormation` instance. Will create one with the default options if you don't provide one
+
+#### `watchResources` (`boolean`, _optional_)
+
+If truthy, will watch and print out resource status
+while the stacks are being created or updated.
+
+#### `s3` (`{ Bucket: string, prefix?: ?string, SSEKMSKeyId?: ?string, forceUpload?: ?boolean }`, _optional_)
+
+If given, will upload the template bodies the given S3 bucket.
+
+### Returns
+
+A `Promise` that will resolve after all stacks are deployed successfully, or reject immediately when any stack
+deployment fails. If one stack deployment fails, the other deployments will not be canceled.
 
 ## `describeCloudFormationFailure(options)`
 

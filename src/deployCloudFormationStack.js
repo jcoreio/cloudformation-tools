@@ -42,6 +42,7 @@ export default async function deployCloudFormationStack({
   Tags,
   s3,
   readOutputs,
+  signalWatchable,
 }: {
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
@@ -63,6 +64,7 @@ export default async function deployCloudFormationStack({
     forceUpload?: ?boolean,
   },
   readOutputs?: ?boolean,
+  signalWatchable?: ?() => mixed,
 }): Promise<{
   ChangeSetName: string,
   ChangeSetType: string,
@@ -156,6 +158,7 @@ export default async function deployCloudFormationStack({
           ChangeSetName,
           StackName,
         })
+        if (signalWatchable) signalWatchable()
         watchInterval = watchResources
           ? watchStackResources({ cloudformation, StackName })
           : null
