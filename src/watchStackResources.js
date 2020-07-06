@@ -15,11 +15,13 @@ export default function watchStackResources({
   cloudformation,
   StackName,
   StackNames: _StackNames,
+  whilePending,
 }: {
   delay?: ?number,
   cloudformation?: ?AWS.CloudFormation,
-  StackName?: string,
-  StackNames?: Array<string>,
+  StackName?: ?string,
+  StackNames?: ?Array<string>,
+  whilePending?: ?Promise<any>,
 }): IntervalID {
   const StackNames = ((): Array<string> => {
     if (_StackNames) return _StackNames
@@ -48,6 +50,7 @@ export default function watchStackResources({
     process.stderr.write(new Date().toString() + '\n')
   }
   onInterval()
+  if (whilePending) whilePending.finally(() => clearInterval(interval))
   return interval
 }
 

@@ -215,6 +215,10 @@ The names or unique ids of stacks to watch
 
 The interval delay in milliseconds
 
+#### `whilePending` (`Promise<any>, _optional_)
+
+If given, the interval will be cleared once this promise resolves or rejects.
+
 ### Returns
 
 The interval ID from `setInterval`.
