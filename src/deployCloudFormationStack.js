@@ -168,9 +168,11 @@ export default async function deployCloudFormationStack({
         })
         if (signalWatchable) signalWatchable()
         if (watcher) watcher.addStackName(StackName)
-        watchInterval = watchResources
-          ? watchStackResources({ cloudformation, StackName })
-          : null
+        else {
+          watchInterval = watchResources
+            ? watchStackResources({ cloudformation, StackName })
+            : null
+        }
         await deployer.waitForExecute({
           StackName,
           ChangeSetType,
