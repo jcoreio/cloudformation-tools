@@ -12,6 +12,12 @@ type Tag = {
   Value: string
 }
 
+interface StackResourceWatcher {
+  addStackName(StackName: string): any
+  removeStackName(StackName: string): any
+  stop?(): any
+}
+
 export default function deployCloudFormationStack(options: {
   cloudformation?: AWS.CloudFormation | null | undefined
   watchResources?: boolean | null | undefined
@@ -34,6 +40,7 @@ export default function deployCloudFormationStack(options: {
   }
   readOutputs?: boolean | null | undefined
   signalWatchable?: (() => any) | null | undefined
+  watcher?: StackResourceWatcher | null | undefined
 }): Promise<{
   ChangeSetName: string
   ChangeSetType: string

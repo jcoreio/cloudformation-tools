@@ -26,6 +26,12 @@ type Tag = {
   Value: string,
 }
 
+interface StackResourceWatcher {
+  addStackName(StackName: string): any;
+  removeStackName(StackName: string): any;
+  stop?: () => any;
+}
+
 export default async function deployCloudFormationStack({
   cloudformation,
   watchResources,
@@ -43,6 +49,7 @@ export default async function deployCloudFormationStack({
   s3,
   readOutputs,
   signalWatchable,
+  watcher,
 }: {
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
@@ -65,6 +72,7 @@ export default async function deployCloudFormationStack({
   },
   readOutputs?: ?boolean,
   signalWatchable?: ?() => mixed,
+  watcher?: ?StackResourceWatcher,
 }): Promise<{
   ChangeSetName: string,
   ChangeSetType: string,
@@ -159,6 +167,7 @@ export default async function deployCloudFormationStack({
           StackName,
         })
         if (signalWatchable) signalWatchable()
+        if (watcher) watcher.addStackName(StackName)
         watchInterval = watchResources
           ? watchStackResources({ cloudformation, StackName })
           : null
@@ -168,6 +177,7 @@ export default async function deployCloudFormationStack({
         })
       } catch (error) {
         if (watchInterval != null) clearInterval(watchInterval)
+        if (watcher && watcher.stop) watcher.stop()
         await describeCloudFormationFailure({
           cloudformation,
           StackName,
@@ -175,6 +185,7 @@ export default async function deployCloudFormationStack({
         throw error
       } finally {
         if (watchInterval != null) clearInterval(watchInterval)
+        if (watcher) watcher.removeStackName(StackName)
       }
     }
   } else {
