@@ -2,6 +2,7 @@ import AWS from 'aws-sdk'
 
 type Options = {
   interval: number
+  region?: string | null | undefined
   cloudformation?: AWS.CloudFormation | null | undefined
 }
 
