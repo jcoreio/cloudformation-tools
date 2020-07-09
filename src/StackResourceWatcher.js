@@ -56,6 +56,7 @@ export default class StackResourceWatcher {
       throw new Error('not running')
     }
     clearInterval(this._intervalID)
+    this._intervalID = null
   }
 
   _update = async () => {
