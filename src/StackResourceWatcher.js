@@ -73,11 +73,9 @@ export default class StackResourceWatcher {
     process.stderr.write(ansi.clearScreen)
     process.stderr.write(ansi.cursorTo(0, 0))
     for (let i = 0; i < StackNames.length; i++) {
-      if (StackNames.length > 1) {
-        process.stderr.write(
-          chalk`${i > 0 ? '\n' : ''}{bold ${StackNames[i]}}:\n\n`
-        )
-      }
+      process.stderr.write(
+        chalk`${i > 0 ? '\n' : ''}{bold ${StackNames[i]}}:\n\n`
+      )
       printStackResources({ resources: resources[i] })
     }
     process.stderr.write(new Date().toString() + '\n')
