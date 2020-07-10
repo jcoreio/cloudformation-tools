@@ -90,6 +90,12 @@ If given, will upload the template body the given S3 bucket.
 
 If `true`, stack outputs will be read and returned in the `Outputs` property. Defaults to `false`.
 
+#### `replaceIfCreateFailed` (`boolean`, _optional_)
+
+If `true`, will replace an existing stack of the same name if it's in `CREATE_FAILED`, `ROLLBACK_FAILED`,
+`ROLLBACK_COMPLETE` or `ROLLBACK_IN_PROGRESS` state (note that these only refer to rollback after
+create failure, and are distinct from the `UPDATE_ROLLBACK_...` states)
+
 #### `signalWatchable` (`() => mixed`, _optional_)
 
 If given, this function will be called once the stack create/update is ready to be watched.

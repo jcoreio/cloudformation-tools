@@ -27,6 +27,7 @@ export default function deployCloudFormationStacks(options: {
     NotificationARNs?: Array<string> | null | undefined
     Tags?: Record<string, any> | Array<Tag> | null | undefined
     readOutputs?: boolean | null | undefined
+    replaceIfCreateFailed?: boolean | null | undefined
   }>
   s3?: {
     Bucket: string

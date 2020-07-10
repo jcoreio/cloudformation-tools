@@ -40,6 +40,7 @@ export default function deployCloudFormationStack(options: {
   }
   readOutputs?: boolean | null | undefined
   signalWatchable?: (() => any) | null | undefined
+  replaceIfCreateFailed?: boolean | null | undefined
   watcher?: StackResourceWatcher | null | undefined
 }): Promise<{
   ChangeSetName: string

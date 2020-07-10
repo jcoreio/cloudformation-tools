@@ -50,6 +50,7 @@ export default async function deployCloudFormationStack({
   readOutputs,
   signalWatchable,
   watcher,
+  replaceIfCreateFailed,
 }: {
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
@@ -73,6 +74,7 @@ export default async function deployCloudFormationStack({
   readOutputs?: ?boolean,
   signalWatchable?: ?() => mixed,
   watcher?: ?StackResourceWatcher,
+  replaceIfCreateFailed?: ?boolean,
 }): Promise<{
   ChangeSetName: string,
   ChangeSetType: string,
@@ -116,6 +118,32 @@ export default async function deployCloudFormationStack({
     }
   }
 
+  if (replaceIfCreateFailed) {
+    const {
+      Stacks: [Stack],
+    } = await cloudformation
+      .describeStacks({
+        StackName,
+      })
+      .promise()
+      .catch(() => ({ Stacks: [] }))
+    if (Stack) {
+      const { StackStatus } = Stack
+      if (
+        [
+          'CREATE_FAILED',
+          'ROLLBACK_FAILED',
+          'ROLLBACK_COMPLETE',
+          'ROLLBACK_IN_PROGRESS',
+        ].includes(StackStatus)
+      ) {
+        // eslint-disable-next-line no-console
+        console.log(`Deleting existing ${StackStatus} stack: ${StackName}...`)
+        await cloudformation.deleteStack({ StackName }).promise()
+      }
+    }
+  }
+
   const {
     ChangeSetName,
     ChangeSetType,
@@ -139,7 +167,10 @@ export default async function deployCloudFormationStack({
       })
       // eslint-disable-next-line no-console
       console.error(
-        `Changes to stack:\n${inspect(changes, { colors: true, depth: 5 })}`
+        `Changes to stack ${StackName}:\n${inspect(changes, {
+          colors: true,
+          depth: 5,
+        })}`
       )
       const rl = readline.createInterface({
         input: process.stdin,
@@ -192,7 +223,7 @@ export default async function deployCloudFormationStack({
     }
   } else {
     // eslint-disable-next-line no-console
-    console.log('stack is already in the desired state')
+    console.log(`stack ${StackName} is already in the desired state`)
   }
 
   const Outputs = readOutputs

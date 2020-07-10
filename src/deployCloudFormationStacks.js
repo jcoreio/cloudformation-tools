@@ -44,6 +44,7 @@ export default function deployCloudFormationStacks({
     NotificationARNs?: ?Array<string>,
     Tags?: ?({ [string]: any } | Array<Tag>),
     readOutputs?: ?boolean,
+    replaceIfFailed?: ?boolean,
   }>,
   watchResources?: ?boolean,
 }): Promise<
