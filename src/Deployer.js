@@ -44,7 +44,7 @@ export default class Deployer {
     s3Uploader,
     Tags,
   }) {
-    const Description = `Created at {new Date().toISOString()} UTC`
+    const Description = `Created at ${new Date().toISOString()} UTC`
     const ChangeSetName = `${this.changesetPrefix}${Date.now()}`
 
     let ChangeSetType
@@ -127,7 +127,9 @@ export default class Deployer {
     let HasChanges = true
     do {
       if (--retriesRemaining <= 0)
-        throw Error('timed out waiting for changeset to be created')
+        throw Error(
+          `timed out waiting for changeset to be created - ${StackName}`
+        )
 
       const { Summaries } = await this._client
         .listChangeSets({
@@ -190,7 +192,9 @@ export default class Deployer {
   }
 
   async waitForExecute({ StackName, ChangeSetType }) {
-    process.stderr.write('Waiting for stack create/update to complete\n')
+    process.stderr.write(
+      `Waiting for stack create/update to complete - ${StackName}\n`
+    )
     await this._client
       .waitFor(
         ChangeSetType === 'CREATE'
