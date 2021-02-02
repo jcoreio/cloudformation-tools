@@ -41,6 +41,7 @@ export default async function deployCloudFormationStack({
   Template,
   TemplateFile,
   TemplateBody,
+  StackPolicy,
   Parameters,
   Capabilities,
   RoleARN,
@@ -60,6 +61,7 @@ export default async function deployCloudFormationStack({
   Template?: ?Object,
   TemplateFile?: ?string,
   TemplateBody?: ?(Buffer | string | (() => Readable)),
+  StackPolicy?: ?Object,
   Parameters?: ?({ [string]: any } | Array<Parameter>),
   Capabilities?: ?Array<string>,
   RoleARN?: ?string,
@@ -118,29 +120,36 @@ export default async function deployCloudFormationStack({
     }
   }
 
-  if (replaceIfCreateFailed) {
-    const {
-      Stacks: [Stack],
-    } = await cloudformation
-      .describeStacks({
-        StackName,
-      })
-      .promise()
-      .catch(() => ({ Stacks: [] }))
-    if (Stack) {
-      const { StackStatus } = Stack
-      if (
-        [
-          'CREATE_FAILED',
-          'ROLLBACK_FAILED',
-          'ROLLBACK_COMPLETE',
-          'ROLLBACK_IN_PROGRESS',
-        ].includes(StackStatus)
-      ) {
-        // eslint-disable-next-line no-console
-        console.log(`Deleting existing ${StackStatus} stack: ${StackName}...`)
-        await cloudformation.deleteStack({ StackName }).promise()
-      }
+  const {
+    Stacks: [ExistingStack],
+  } = await cloudformation
+    .describeStacks({
+      StackName,
+    })
+    .promise()
+    .catch(() => ({ Stacks: [] }))
+
+  if (ExistingStack) {
+    const { StackStatus } = ExistingStack
+    const createFailed = [
+      'CREATE_FAILED',
+      'ROLLBACK_FAILED',
+      'ROLLBACK_COMPLETE',
+      'ROLLBACK_IN_PROGRESS',
+    ].includes(StackStatus)
+
+    if (StackPolicy && !createFailed) {
+      await cloudformation
+        .setStackPolicy({
+          StackName,
+          StackPolicyBody: JSON.stringify(StackPolicy, null, 2),
+        })
+        .promise()
+    }
+    if (createFailed && replaceIfCreateFailed) {
+      // eslint-disable-next-line no-console
+      console.log(`Deleting existing ${StackStatus} stack: ${StackName}...`)
+      await cloudformation.deleteStack({ StackName }).promise()
     }
   }
 
@@ -224,6 +233,15 @@ export default async function deployCloudFormationStack({
   } else {
     // eslint-disable-next-line no-console
     console.log(`stack ${StackName} is already in the desired state`)
+  }
+
+  if (StackPolicy && !ExistingStack) {
+    await cloudformation
+      .setStackPolicy({
+        StackName,
+        StackPolicyBody: JSON.stringify(StackPolicy, null, 2),
+      })
+      .promise()
   }
 
   const Outputs = readOutputs

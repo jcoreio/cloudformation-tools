@@ -21,6 +21,7 @@ export default function deployCloudFormationStacks(options: {
     Template?: Record<string, any> | null | undefined
     TemplateFile?: string | null | undefined
     TemplateBody?: Buffer | string | (() => Readable) | null | undefined
+    StackPolicy?: Record<string, any> | undefined
     Parameters?: Record<string, any> | Array<Parameter> | null | undefined
     Capabilities?: Array<string> | null | undefined
     RoleARN?: string | null | undefined

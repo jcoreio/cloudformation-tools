@@ -38,6 +38,7 @@ export default function deployCloudFormationStacks({
     Template?: ?Object,
     TemplateFile?: ?string,
     TemplateBody?: ?(Buffer | string | (() => Readable)),
+    StackPolicy?: ?Object,
     Parameters?: ?({ [string]: any } | Array<Parameter>),
     Capabilities?: ?Array<string>,
     RoleARN?: ?string,
