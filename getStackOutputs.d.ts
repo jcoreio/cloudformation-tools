@@ -1,7 +1,7 @@
-import AWS from 'aws-sdk'
+import { CloudFormation } from 'aws-sdk'
 
 export default function getStackOutputs(options: {
-  cloudformation?: AWS.CloudFormation | null | undefined
+  cloudformation?: CloudFormation | null | undefined
   StackName: string
   region?: string | null | undefined
 }): Promise<Record<string, string>>

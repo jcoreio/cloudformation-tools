@@ -1,6 +1,6 @@
 // @flow
 
-import AWS from 'aws-sdk'
+import { EC2 } from "aws-sdk";
 
 export function getSecurityGroupId(options: {
   securityGroupName: string
@@ -13,6 +13,6 @@ export function upsertSecurityGroup(options: {
   securityGroupName: string
   securityGroupDescription?: string | null | undefined
   vpcId: string
-  ec2?: AWS.EC2 | null | undefined
+  ec2?: EC2 | null | undefined
   region?: string | null | undefined
 }): Promise<{ securityGroupId: string }>
