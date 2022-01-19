@@ -1,4 +1,4 @@
-import AWS from 'aws-sdk'
+import { CloudFormation } from 'aws-sdk'
 import { Readable } from 'stream'
 
 type Parameter = {
@@ -19,7 +19,7 @@ interface StackResourceWatcher {
 }
 
 export default function deployCloudFormationStack(options: {
-  cloudformation?: AWS.CloudFormation | null | undefined
+  cloudformation?: CloudFormation | null | undefined
   watchResources?: boolean | null | undefined
   region?: string | null | undefined
   approve?: boolean | null | undefined
