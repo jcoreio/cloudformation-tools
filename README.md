@@ -39,6 +39,10 @@ An `AWS.CloudFormation` instance. Will create one with the default options if yo
 If truthy, will watch and print out resource status
 while the stack create/update is in progress
 
+#### `watcher` (`StackResourceWatcher`, _optional_)
+
+Alternative to `watchResources`. If given, will watch and print out resource status while the stack create/update is in progress.
+
 #### `region` (`string`, _optional_)
 
 Destination AWS region for CloudFormation stack

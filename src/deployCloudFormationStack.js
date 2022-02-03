@@ -29,7 +29,7 @@ type Tag = {
 interface StackResourceWatcher {
   addStackName(StackName: string): any;
   removeStackName(StackName: string): any;
-  stop?: () => any;
+  +stop?: () => any;
 }
 
 export default async function deployCloudFormationStack({
