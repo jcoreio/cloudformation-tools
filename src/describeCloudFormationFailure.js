@@ -30,14 +30,16 @@ function wrapString(str: string, width: number): Array<string> {
 
 export default async function describeCloudFormationFailure(options: {
   stream?: ?Writable,
+  awsConfig?: ?{ ... },
   cloudformation?: ?AWS.CloudFormation,
   StackName: string,
 }) {
-  const { cloudformation, StackName } = options
+  const { awsConfig, cloudformation, StackName } = options
   const stream = options.stream || process.stderr
   const padding = 25
 
   for await (let event of getCurrentStackEvents({
+    awsConfig,
     cloudformation,
     StackName,
   })) {

@@ -17,13 +17,15 @@ type StackResource = {
 
 export default async function getStackResources({
   cloudformation,
+  awsConfig,
   StackName,
 }: {
   cloudformation?: ?AWS.CloudFormation,
+  awsConfig?: ?{ ... },
   StackName: string,
 }): Promise<Array<StackResource>> {
   if (!StackName) throw new Error('missing StackName')
-  if (!cloudformation) cloudformation = new AWS.CloudFormation()
+  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig || {})
   const resources = []
   let StackResourceSummaries, NextToken
   do {

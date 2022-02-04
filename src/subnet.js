@@ -1,7 +1,6 @@
 // @flow
 
 import AWS from 'aws-sdk'
-import { getEC2 } from './ec2'
 
 export type SubnetInfo = {
   AvailabilityZone: string,
@@ -26,13 +25,17 @@ export async function getSubnetInfo({
   subnetId,
   ec2,
   region,
+  awsConfig,
 }: {
   subnetId: string,
   ec2?: ?AWS.EC2,
   region?: ?string,
+  awsConfig?: ?{ ... },
 }): Promise<SubnetInfo> {
   if (!subnetId) throw Error('subnetId is required')
-  const { Subnets } = await getEC2({ ec2, region })
+  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  if (!ec2) ec2 = new AWS.EC2(awsConfig)
+  const { Subnets } = ec2
     .describeSubnets({
       SubnetIds: [subnetId],
     })

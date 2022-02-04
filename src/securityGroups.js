@@ -1,36 +1,27 @@
 // @flow
 
 import AWS from 'aws-sdk'
-
 import { VError } from 'verror'
-
-import { getEC2 } from './ec2'
 
 export async function getSecurityGroupId({
   securityGroupName,
   ec2,
   region,
+  awsConfig,
   vpcId,
 }: {
   securityGroupName: string,
   ec2?: ?AWS.EC2,
   region?: ?string,
+  awsConfig?: ?{ ... },
   vpcId: string,
 }): Promise<?string> {
   if (!vpcId) throw Error('vpcId is required')
+  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  if (!ec2) ec2 = new AWS.EC2(awsConfig)
   let securityGroups = []
   try {
-    securityGroups = (await getEC2({ ec2, region })
-      .describeSecurityGroups({
-        Filters: [
-          {
-            Name: 'vpc-id',
-            Values: [vpcId],
-          },
-        ],
-        GroupNames: [securityGroupName],
-      })
-      .promise()).SecurityGroups
+    securityGroups = ec2.SecurityGroups
   } catch (err) {
     if ('InvalidGroup.NotFound' !== err.code)
       throw new VError(
@@ -56,23 +47,26 @@ export async function upsertSecurityGroup({
   vpcId,
   ec2,
   region,
+  awsConfig,
 }: {
   securityGroupName: string,
   securityGroupDescription?: ?string,
   vpcId: string,
   ec2?: ?AWS.EC2,
   region?: ?string,
+  awsConfig?: ?{ ... },
 }): Promise<{ securityGroupId: string }> {
-  const ec2Final = getEC2({ ec2, region })
+  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  if (!ec2) ec2 = new AWS.EC2(awsConfig)
   let securityGroupId = await getSecurityGroupId({
     securityGroupName,
-    ec2: ec2Final,
+    ec2,
     vpcId,
   })
   if (!securityGroupId) {
     // eslint-disable-next-line no-console
     console.log(`creating ${securityGroupName} security group...`)
-    securityGroupId = (await ec2Final
+    securityGroupId = (await ec2
       .createSecurityGroup({
         Description: securityGroupDescription || '',
         GroupName: securityGroupName,

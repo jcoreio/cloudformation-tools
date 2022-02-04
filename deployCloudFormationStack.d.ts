@@ -1,4 +1,5 @@
 import { CloudFormation } from 'aws-sdk'
+import { ConfigurationOptions } from 'aws-sdk/lib/config'
 import { Readable } from 'stream'
 
 type Parameter = {
@@ -19,6 +20,7 @@ interface StackResourceWatcher {
 }
 
 export default function deployCloudFormationStack(options: {
+  awsConfig?: ConfigurationOptions | null
   cloudformation?: CloudFormation | null | undefined
   watchResources?: boolean | null | undefined
   region?: string | null | undefined

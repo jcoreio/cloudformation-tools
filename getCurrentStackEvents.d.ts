@@ -1,5 +1,5 @@
 import { CloudFormation } from 'aws-sdk'
-
+import { ConfigurationOptions } from 'aws-sdk/lib/config'
 type StackEvent = {
   StackId: string
   EventId: string
@@ -15,5 +15,6 @@ type StackEvent = {
 
 export default function getCurrentStackEvents(options: {
   cloudformation?: CloudFormation | null | undefined
+  awsConfig?: ConfigurationOptions | null
   StackName: string
 }): AsyncIterable<StackEvent>

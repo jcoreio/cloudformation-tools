@@ -36,6 +36,7 @@ export default async function deployCloudFormationStack({
   cloudformation,
   watchResources,
   region,
+  awsConfig,
   approve,
   StackName,
   Template,
@@ -56,6 +57,7 @@ export default async function deployCloudFormationStack({
   cloudformation?: ?AWS.CloudFormation,
   watchResources?: ?boolean,
   region?: ?string,
+  awsConfig?: ?{ ... },
   approve?: ?boolean,
   StackName: string,
   Template?: ?Object,
@@ -85,8 +87,8 @@ export default async function deployCloudFormationStack({
   Outputs: { [resourceName: string]: string },
 }> {
   if (!StackName) throw new Error('missing StackName')
-  if (!cloudformation)
-    cloudformation = new AWS.CloudFormation(region ? { region } : {})
+  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig)
   const deployer = new Deployer(cloudformation)
 
   if (!Parameters) {
@@ -105,7 +107,7 @@ export default async function deployCloudFormationStack({
   }
 
   const s3Uploader = s3
-    ? new S3Uploader({ ...s3, s3: new AWS.S3(region ? { region } : {}) })
+    ? new S3Uploader({ ...s3, s3: new AWS.S3(awsConfig) })
     : null
 
   if (!TemplateBody) {
@@ -210,7 +212,7 @@ export default async function deployCloudFormationStack({
         if (watcher) watcher.addStackName(StackName)
         else {
           watchInterval = watchResources
-            ? watchStackResources({ cloudformation, StackName })
+            ? watchStackResources({ cloudformation, awsConfig, StackName })
             : null
         }
         await deployer.waitForExecute({

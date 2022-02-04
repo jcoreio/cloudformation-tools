@@ -15,20 +15,17 @@ import AWS from 'aws-sdk'
 type Options = {
   interval: number,
   region?: ?string,
+  awsConfig?: ?{ ... },
   cloudformation?: ?AWS.CloudFormation,
 }
 
 export default class StackResourceWatcher {
   _StackNames: Array<string> = []
   _options: Options
-  _cloudformation: AWS.CloudFormation
   _intervalID: ?IntervalID = null
 
   constructor(options: Options) {
     this._options = options
-    const { region } = options
-    this._cloudformation =
-      options.cloudformation || new AWS.CloudFormation({ region })
   }
 
   addStackName(StackName: string) {
@@ -63,11 +60,11 @@ export default class StackResourceWatcher {
     if (this._intervalID == null) return
 
     const StackNames = this._StackNames
-    const cloudformation = this._cloudformation
+    const { awsConfig, cloudformation } = this._options
 
     const resources = await Promise.all(
       StackNames.map(StackName =>
-        getStackResources({ cloudformation, StackName })
+        getStackResources({ cloudformation, awsConfig, StackName })
       )
     )
     process.stderr.write(ansi.clearScreen)

@@ -9,16 +9,18 @@ import { fromPairs } from 'lodash'
 
 export default async function getStackOutputs({
   cloudformation,
+  awsConfig,
   StackName,
   region,
 }: {
   cloudformation?: ?AWS.CloudFormation,
+  awsConfig?: ?{ ... },
   StackName: string,
   region?: ?string,
 }): Promise<{ [resource: string]: string }> {
   if (!StackName) throw new Error('missing StackName')
-  if (!cloudformation)
-    cloudformation = new AWS.CloudFormation(region ? { region } : {})
+  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig)
   const {
     Stacks: [{ Outputs }],
   } = await cloudformation

@@ -10,16 +10,19 @@ function extractId(zone: ?Object): ?string {
 export default async function getHostedZoneIds({
   domain,
   region,
+  awsConfig,
 }: {
-  domain: string,
+  domain?: ?string,
   region: String,
+  awsConfig?: ?{ ... },
 }): Promise<{ publicZone: string, privateZone: string }> {
   if (!domain) throw Error(`domain is required`)
   const domainClean = domain.endsWith('.')
     ? domain.substr(0, domain.length - 1)
     : domain
   if (!domainClean) throw Error(`domain must not be just a trailing dot`)
-  const { HostedZones } = await new AWS.Route53({ region })
+  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  const { HostedZones } = await new AWS.Route53(awsConfig)
     .listHostedZonesByName({
       DNSName: domainClean,
       MaxItems: '2',

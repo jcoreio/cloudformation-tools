@@ -19,14 +19,16 @@ type StackEvent = {
 }
 
 export default async function* getCurrentStackEvents({
+  awsConfig,
   cloudformation,
   StackName,
 }: {
+  awsConfig?: ?{ ... },
   cloudformation?: ?AWS.CloudFormation,
   StackName: string,
 }): AsyncIterable<StackEvent> {
   if (!StackName) throw new Error('missing StackName')
-  if (!cloudformation) cloudformation = new AWS.CloudFormation()
+  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig || {})
   let StackEvents, NextToken
   let count = 0
   do {

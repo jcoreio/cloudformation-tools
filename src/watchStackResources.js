@@ -13,12 +13,14 @@ import chalk from 'chalk'
 export default function watchStackResources({
   delay,
   cloudformation,
+  awsConfig,
   StackName,
   StackNames: _StackNames,
   whilePending,
 }: {
   delay?: ?number,
   cloudformation?: ?AWS.CloudFormation,
+  awsConfig?: ?{ ... },
   StackName?: ?string,
   StackNames?: ?Array<string>,
   whilePending?: ?Promise<any>,
@@ -29,12 +31,11 @@ export default function watchStackResources({
     throw new Error('StackName or StackNames must be provided')
   })()
   if (!StackNames.length) throw new Error('StackNames must not be empty')
-  if (!cloudformation) cloudformation = new AWS.CloudFormation()
   const interval = setInterval(onInterval, delay || 5000)
   async function onInterval() {
     const resources = await Promise.all(
       StackNames.map(StackName =>
-        getStackResources({ cloudformation, StackName })
+        getStackResources({ cloudformation, awsConfig, StackName })
       )
     )
     process.stderr.write(ansi.clearScreen)

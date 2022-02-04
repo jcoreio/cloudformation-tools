@@ -30,6 +30,10 @@ fails, it will log the failure events.
 
 ### `options` object
 
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
+
 #### `cloudformation` (`AWS.CloudFormation`, _optional_)
 
 An `AWS.CloudFormation` instance. Will create one with the default options if you don't provide one
@@ -116,6 +120,12 @@ import { deployCloudFormationStacks } from '@jcoreio/cloudformation-tools'
 
 Deploys multiple stacks in parallel.
 
+### `options` object
+
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
+
 #### `stacks` (`Array`, **required**)
 
 An array of arguments for `deployCloudFormationStack`, without the other options below or the `approve` option.
@@ -149,6 +159,10 @@ with nice formatting, to help you debug.
 
 ### `options` object
 
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
+
 #### `cloudformation` (`AWS.CloudFormation`, _optional_)
 
 An `AWS.CloudFormation` instance. Will create one with the default options if you don't provide one
@@ -176,6 +190,10 @@ Gets a stack's outputs as an object
 instead of an array of `{OutputKey, OutputValue}` objects.
 
 ### `options` object
+
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
 
 #### `cloudformation` (`AWS.CloudFormation`, _optional_)
 
@@ -224,6 +242,10 @@ Gets all of the events from the most recent changeset,
 handling paging for you.
 
 ### `options` object
+
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
 
 #### `cloudformation` (`AWS.CloudFormation`, _optional_)
 
@@ -289,6 +311,10 @@ it if needed.
 
 ### `options` object
 
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
+
 #### `securityGroupName` (`string`, **required**)
 
 Name of the security group
@@ -322,6 +348,10 @@ Ensures that a security group with the specified name exists in the VPC, creatin
 it if needed.
 
 ### `options` object
+
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
 
 #### `subnetId` (`string`, **required**)
 

@@ -20,12 +20,14 @@ type Tag = {
 }
 
 export default function deployCloudFormationStacks({
+  awsConfig,
   cloudformation,
   s3,
   stacks,
   watchResources,
 }: {
   cloudformation?: ?AWS.CloudFormation,
+  awsConfig?: ?{ ... },
   s3?: {
     Bucket: string,
     prefix?: ?string,
@@ -34,6 +36,7 @@ export default function deployCloudFormationStacks({
   },
   stacks: $ReadOnlyArray<{
     region?: ?string,
+    awsConfig?: ?{ ... },
     StackName: string,
     Template?: ?Object,
     TemplateFile?: ?string,
@@ -71,6 +74,7 @@ export default function deployCloudFormationStacks({
   const result = Promise.all(
     stacks.map(stack =>
       deployCloudFormationStack({
+        awsConfig,
         ...stack,
         cloudformation,
         s3,
@@ -87,6 +91,7 @@ export default function deployCloudFormationStacks({
     Promise.all(watchablePromises).then(() => {
       watchStackResources({
         cloudformation,
+        awsConfig,
         StackNames: stacks.map(stack => stack.StackName),
         whilePending: result,
       })

@@ -1,8 +1,10 @@
 import * as AWS from 'aws-sdk'
+import { ConfigurationOptions } from 'aws-sdk/lib/config'
 
 type Options = {
   interval: number
   region?: string | null | undefined
+  awsConfig?: ConfigurationOptions | null
   cloudformation?: AWS.CloudFormation | null | undefined
 }
 
