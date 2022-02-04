@@ -245,7 +245,7 @@ export default async function deployCloudFormationStack({
   }
 
   const Outputs = readOutputs
-    ? await getStackOutputs({ region, StackName })
+    ? await getStackOutputs({ region, StackName, cloudformation })
     : {}
   return {
     ChangeSetName,
