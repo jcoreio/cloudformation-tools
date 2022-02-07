@@ -1,5 +1,4 @@
-import { CloudFormation } from 'aws-sdk'
-import { ConfigurationOptions } from 'aws-sdk/lib/config'
+import AWS from 'aws-sdk'
 import { Readable } from 'stream'
 
 type Parameter = {
@@ -14,11 +13,11 @@ type Tag = {
 }
 
 export default function deployCloudFormationStacks(options: {
-  awsConfig?: ConfigurationOptions | null
-  cloudformation?: CloudFormation | null | undefined
+  awsConfig?: AWS.ConfigurationOptions | null
+  cloudformation?: AWS.CloudFormation | null | undefined
   watchResources?: boolean | null | undefined
   stacks: Array<{
-    awsConfig?: ConfigurationOptions | null
+    awsConfig?: AWS.ConfigurationOptions | null
     region?: string | null | undefined
     StackName: string
     Template?: Record<string, any> | null | undefined

@@ -1,9 +1,9 @@
 import { Writable } from 'stream'
-import { ConfigurationOptions } from 'aws-sdk/lib/config'
+import AWS from 'aws-sdk'
 
 export default function describeCloudFormationFailure(options: {
   stream?: Writable | null | undefined
-  awsConfig?: ConfigurationOptions | null
+  awsConfig?: AWS.ConfigurationOptions | null
   cloudformation?: AWS.CloudFormation | null | undefined
   StackName: string
 }): Promise<void>

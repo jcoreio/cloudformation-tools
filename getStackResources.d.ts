@@ -1,5 +1,4 @@
-import { CloudFormation } from 'aws-sdk'
-import { ConfigurationOptions } from 'aws-sdk/lib/config'
+import AWS from 'aws-sdk'
 
 type StackResource = {
   LogicalResourceId: string
@@ -12,7 +11,7 @@ type StackResource = {
 }
 
 export default function getStackResources(options: {
-  cloudformation?: CloudFormation | null | undefined
-  awsConfig?: ConfigurationOptions | null
+  cloudformation?: AWS.CloudFormation | null | undefined
+  awsConfig?: AWS.ConfigurationOptions | null
   StackName: string
 }): Promise<Array<StackResource>>

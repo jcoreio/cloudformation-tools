@@ -1,4 +1,4 @@
-import { ConfigurationOptions } from 'aws-sdk/lib/config'
+import AWS from 'aws-sdk'
 
 export type SubnetInfo = {
   AvailabilityZone: string
@@ -23,5 +23,5 @@ export function getSubnetInfo(options: {
   subnetId: string
   ec2?: AWS.EC2 | undefined
   region?: string | undefined
-  awsConfig?: ConfigurationOptions | null
+  awsConfig?: AWS.ConfigurationOptions | null
 }): Promise<SubnetInfo>

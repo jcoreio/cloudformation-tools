@@ -1,7 +1,7 @@
-import { ConfigurationOptions } from 'aws-sdk/lib/config'
+import AWS from 'aws-sdk'
 
 export default function getHostedZoneIds(options: {
   domain: string
   region?: String | null
-  awsConfig?: ConfigurationOptions | null
+  awsConfig?: AWS.ConfigurationOptions | null
 }): Promise<{ publicZone: string; privateZone: string }>
