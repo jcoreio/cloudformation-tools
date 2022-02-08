@@ -14,6 +14,7 @@ import watchStackResources from './watchStackResources'
 import { map } from 'lodash'
 import { type Readable } from 'stream'
 import S3Uploader from './S3Uploader'
+import type StackResourceWatcher from './StackResourceWatcher'
 
 type Parameter = {
   ParameterKey: string,
@@ -24,12 +25,6 @@ type Parameter = {
 type Tag = {
   Key: string,
   Value: string,
-}
-
-interface StackResourceWatcher {
-  addStackName(StackName: string): any;
-  removeStackName(StackName: string): any;
-  +stop?: () => any;
 }
 
 export default async function deployCloudFormationStack({
