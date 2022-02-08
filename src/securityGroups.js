@@ -61,6 +61,7 @@ export async function upsertSecurityGroup({
   let securityGroupId = await getSecurityGroupId({
     securityGroupName,
     ec2,
+    awsConfig,
     vpcId,
   })
   if (!securityGroupId) {

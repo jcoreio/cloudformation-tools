@@ -14,5 +14,5 @@ export async function getVPCIdBySubnetId({
   region?: ?string,
   awsConfig?: ?{ ... },
 }): Promise<string> {
-  return (await getSubnetInfo({ subnetId, ec2, region })).VpcId
+  return (await getSubnetInfo({ subnetId, ec2, awsConfig, region })).VpcId
 }
