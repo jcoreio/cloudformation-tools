@@ -21,7 +21,17 @@ export async function getSecurityGroupId({
   if (!ec2) ec2 = new AWS.EC2(awsConfig)
   let securityGroups = []
   try {
-    securityGroups = ec2.SecurityGroups
+    securityGroups = (await ec2
+      .describeSecurityGroups({
+        Filters: [
+          {
+            Name: 'vpc-id',
+            Values: [vpcId],
+          },
+        ],
+        GroupNames: [securityGroupName],
+      })
+      .promise()).SecurityGroups
   } catch (err) {
     if ('InvalidGroup.NotFound' !== err.code)
       throw new VError(
@@ -29,7 +39,7 @@ export async function getSecurityGroupId({
         `could not fetch security group ID for security group name ${securityGroupName} in VPC ${vpcId}`
       )
   }
-  return securityGroups && securityGroups[0] ? securityGroups[0].GroupId : null
+  return securityGroups[0] ? securityGroups[0].GroupId : null
 }
 
 /**
@@ -61,7 +71,6 @@ export async function upsertSecurityGroup({
   let securityGroupId = await getSecurityGroupId({
     securityGroupName,
     ec2,
-    awsConfig,
     vpcId,
   })
   if (!securityGroupId) {
