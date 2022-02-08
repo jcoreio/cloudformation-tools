@@ -29,7 +29,7 @@ export async function getSecurityGroupId({
         `could not fetch security group ID for security group name ${securityGroupName} in VPC ${vpcId}`
       )
   }
-  return securityGroups[0] ? securityGroups[0].GroupId : null
+  return securityGroups && securityGroups[0] ? securityGroups[0].GroupId : null
 }
 
 /**

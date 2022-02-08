@@ -40,7 +40,7 @@ export async function getSubnetInfo({
       SubnetIds: [subnetId],
     })
     .promise()
-  const subnet = Subnets[0]
+  const subnet = Subnets ? Subnets[0] : undefined
   if (!subnet) throw Error(`subnet with ID ${subnetId} not found`)
   return subnet
 }
