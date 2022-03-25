@@ -70,6 +70,7 @@ export default class StackResourceWatcher {
     process.stderr.write(ansi.clearScreen)
     process.stderr.write(ansi.cursorTo(0, 0))
     for (let i = 0; i < StackNames.length; i++) {
+      if (!resources[i]) continue
       process.stderr.write(
         chalk`${i > 0 ? '\n' : ''}{bold ${StackNames[i]}}:\n\n`
       )
