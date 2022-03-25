@@ -146,7 +146,31 @@ export default async function deployCloudFormationStack({
     if (createFailed && replaceIfCreateFailed) {
       // eslint-disable-next-line no-console
       console.log(`Deleting existing ${StackStatus} stack: ${StackName}...`)
-      await cloudformation.deleteStack({ StackName }).promise()
+      let watchInterval: ?IntervalID
+      try {
+        if (signalWatchable) signalWatchable()
+        if (watcher) watcher.addStackName(StackName)
+        else {
+          watchInterval = watchResources
+            ? watchStackResources({ cloudformation, awsConfig, StackName })
+            : null
+        }
+        await Promise.all([
+          cloudformation.waitFor('stackDeleteComplete', { StackName }),
+          cloudformation.deleteStack({ StackName }).promise(),
+        ])
+      } catch (error) {
+        if (watchInterval != null) clearInterval(watchInterval)
+        if (watcher && watcher.stop) watcher.stop()
+        await describeCloudFormationFailure({
+          cloudformation,
+          StackName,
+        }).catch(() => {})
+        throw error
+      } finally {
+        if (watchInterval != null) clearInterval(watchInterval)
+        if (watcher) watcher.removeStackName(StackName)
+      }
     }
   }
 
