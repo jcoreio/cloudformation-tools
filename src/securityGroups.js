@@ -25,11 +25,14 @@ export async function getSecurityGroupId({
       .describeSecurityGroups({
         Filters: [
           {
+            Name: 'group-name',
+            Values: [securityGroupName],
+          },
+          {
             Name: 'vpc-id',
             Values: [vpcId],
           },
         ],
-        GroupNames: [securityGroupName],
       })
       .promise()).SecurityGroups
   } catch (err) {
