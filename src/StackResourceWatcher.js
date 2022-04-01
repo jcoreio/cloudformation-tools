@@ -27,6 +27,7 @@ export default class StackResourceWatcher {
   _StackNames: Array<string> = []
   _options: Options
   _intervalID: ?IntervalID = null
+  _linesWritten: number = 0
 
   constructor(options: Options) {
     this._options = options
@@ -78,22 +79,26 @@ export default class StackResourceWatcher {
       )
     )
     if (clearScreen !== false) {
-      process.stderr.write(ansi.clearScreen)
-      process.stderr.write(ansi.cursorTo(0, 0))
+      process.stderr.write(ansi.eraseLines(this._linesWritten + 1))
     }
+    this._linesWritten = 0
     for (let i = 0; i < StackNames.length; i++) {
       const { resources, error } = stackResources[i]
       process.stderr.write(
         chalk`${i > 0 ? '\n' : ''}{bold ${StackNames[i]}}:\n\n`
       )
+      this._linesWritten += i > 0 ? 3 : 2
       if (error) {
         process.stderr.write(
-          chalk.red(`Failed to get stack resources: ${error.message}`)
+          chalk.red(`Failed to get stack resources: ${error.message}\n\n`)
         )
+        this._linesWritten += 1 + error.message.split(/\n/gm).length
       }
       if (!Array.isArray(resources)) continue
       printStackResources({ resources })
+      this._linesWritten += resources.length + 1
     }
     process.stderr.write(new Date().toString() + '\n')
+    this._linesWritten++
   }
 }

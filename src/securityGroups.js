@@ -78,7 +78,7 @@ export async function upsertSecurityGroup({
   })
   if (!securityGroupId) {
     // eslint-disable-next-line no-console
-    console.log(`creating ${securityGroupName} security group...`)
+    console.error(`creating ${securityGroupName} security group...`)
     securityGroupId = (await ec2
       .createSecurityGroup({
         Description: securityGroupDescription || '',
