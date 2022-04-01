@@ -28,7 +28,7 @@ type Tag = {
 }
 
 export default async function deployCloudFormationStack({
-  cloudformation,
+  cloudformation: _cloudformation,
   watchResources,
   region,
   awsConfig,
@@ -83,7 +83,7 @@ export default async function deployCloudFormationStack({
 }> {
   if (!StackName) throw new Error('missing StackName')
   if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
-  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig)
+  const cloudformation = _cloudformation || new AWS.CloudFormation(awsConfig)
   const deployer = new Deployer(cloudformation)
 
   if (!Parameters) {
@@ -117,6 +117,31 @@ export default async function deployCloudFormationStack({
     }
   }
 
+  async function watchDuring<R>(procedure: () => Promise<R>): Promise<R> {
+    let watchInterval: ?IntervalID
+    try {
+      if (signalWatchable) signalWatchable()
+      if (watcher) watcher.addStackName(StackName)
+      else {
+        watchInterval = watchResources
+          ? watchStackResources({ cloudformation, awsConfig, StackName })
+          : null
+      }
+      return await procedure()
+    } catch (error) {
+      if (watchInterval != null) clearInterval(watchInterval)
+      if (watcher && watcher.stop) watcher.stop()
+      await describeCloudFormationFailure({
+        cloudformation,
+        StackName,
+      }).catch(() => {})
+      throw error
+    } finally {
+      if (watchInterval != null) clearInterval(watchInterval)
+      if (watcher) watcher.removeStackName(StackName)
+    }
+  }
+
   const {
     Stacks: [ExistingStack],
   } = await cloudformation
@@ -145,34 +170,33 @@ export default async function deployCloudFormationStack({
     }
     if (createFailed && replaceIfCreateFailed) {
       // eslint-disable-next-line no-console
-      console.log(`Deleting existing ${StackStatus} stack: ${StackName}...`)
-      let watchInterval: ?IntervalID
-      try {
-        if (signalWatchable) signalWatchable()
-        if (watcher) watcher.addStackName(StackName)
-        else {
-          watchInterval = watchResources
-            ? watchStackResources({ cloudformation, awsConfig, StackName })
-            : null
-        }
-        await Promise.all([
+      console.error(`Deleting existing ${StackStatus} stack: ${StackName}...`)
+      await watchDuring(() =>
+        Promise.all([
           cloudformation
             .waitFor('stackDeleteComplete', { StackName })
             .promise(),
           cloudformation.deleteStack({ StackName }).promise(),
         ])
-      } catch (error) {
-        if (watchInterval != null) clearInterval(watchInterval)
-        if (watcher && watcher.stop) watcher.stop()
-        await describeCloudFormationFailure({
-          cloudformation,
-          StackName,
-        }).catch(() => {})
-        throw error
-      } finally {
-        if (watchInterval != null) clearInterval(watchInterval)
-        if (watcher) watcher.removeStackName(StackName)
-      }
+      )
+    } else if (/_IN_PROGRESS$/.test(StackStatus)) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Waiting for existing stack ${StackStatus.replace(
+          /^(.*)_IN_PROGRESS$/,
+          (m, a) => a.toLowerCase()
+        )} to complete...`
+      )
+      await watchDuring(() =>
+        cloudformation
+          .waitFor(
+            StackStatus.replace(
+              /^(.)(.*)_IN_PROGRESS$/,
+              (m, a, b) => `stack${a}${b.toLowerCase()}Complete`
+            )
+          )
+          .promise()
+      )
     }
   }
 
@@ -223,39 +247,20 @@ export default async function deployCloudFormationStack({
     }
 
     if (!UserAborted) {
-      let watchInterval: ?IntervalID
-      try {
+      await watchDuring(async () => {
         await deployer.executeChangeSet({
           ChangeSetName,
           StackName,
         })
-        if (signalWatchable) signalWatchable()
-        if (watcher) watcher.addStackName(StackName)
-        else {
-          watchInterval = watchResources
-            ? watchStackResources({ cloudformation, awsConfig, StackName })
-            : null
-        }
         await deployer.waitForExecute({
           StackName,
           ChangeSetType,
         })
-      } catch (error) {
-        if (watchInterval != null) clearInterval(watchInterval)
-        if (watcher && watcher.stop) watcher.stop()
-        await describeCloudFormationFailure({
-          cloudformation,
-          StackName,
-        }).catch(() => {})
-        throw error
-      } finally {
-        if (watchInterval != null) clearInterval(watchInterval)
-        if (watcher) watcher.removeStackName(StackName)
-      }
+      })
     }
   } else {
     // eslint-disable-next-line no-console
-    console.log(`stack ${StackName} is already in the desired state`)
+    console.error(`stack ${StackName} is already in the desired state`)
   }
 
   if (StackPolicy && !ExistingStack) {
