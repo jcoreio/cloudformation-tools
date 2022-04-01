@@ -5,7 +5,7 @@
 
 import AWS from 'aws-sdk'
 
-type StackResource = {
+export type StackResource = {
   LogicalResourceId: string,
   PhysicalResourceId: string,
   ResourceType: string,

@@ -5,7 +5,7 @@
 
 import { pull } from 'lodash'
 
-import getStackResources from './getStackResources'
+import getStackResources, { type StackResource } from './getStackResources'
 import ansi from 'ansi-escapes'
 import chalk from 'chalk'
 import printStackResources from './printStackResources'
@@ -43,14 +43,14 @@ export default class StackResourceWatcher {
 
   start() {
     if (this._intervalID != null) {
-      throw new Error('already running')
+      return
     }
     this._intervalID = setInterval(this._update, this._options.interval)
     this._update()
   }
   stop() {
     if (this._intervalID == null) {
-      throw new Error('not running')
+      return
     }
     clearInterval(this._intervalID)
     this._intervalID = null
@@ -62,19 +62,31 @@ export default class StackResourceWatcher {
     const StackNames = this._StackNames
     const { awsConfig, cloudformation } = this._options
 
-    const resources = await Promise.all(
+    const stackResources: {
+      resources?: StackResource[],
+      error?: Error,
+    }[] = await Promise.all(
       StackNames.map(StackName =>
-        getStackResources({ cloudformation, awsConfig, StackName })
+        getStackResources({ cloudformation, awsConfig, StackName }).then(
+          resources => ({ resources }),
+          error => ({ error })
+        )
       )
     )
     process.stderr.write(ansi.clearScreen)
     process.stderr.write(ansi.cursorTo(0, 0))
     for (let i = 0; i < StackNames.length; i++) {
-      if (!resources[i]) continue
+      const { resources, error } = stackResources[i]
       process.stderr.write(
         chalk`${i > 0 ? '\n' : ''}{bold ${StackNames[i]}}:\n\n`
       )
-      printStackResources({ resources: resources[i] })
+      if (error) {
+        process.stderr.write(
+          chalk.red(`Failed to get stack resources: ${error.message}`)
+        )
+      }
+      if (!Array.isArray(resources)) continue
+      printStackResources({ resources })
     }
     process.stderr.write(new Date().toString() + '\n')
   }
