@@ -5,6 +5,7 @@ type Options = {
   region?: string | null | undefined
   awsConfig?: AWS.ConfigurationOptions | null
   cloudformation?: AWS.CloudFormation | null | undefined
+  clearScreen?: boolean
 }
 
 export default class StackResourceWatcher {

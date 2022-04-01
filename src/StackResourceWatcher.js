@@ -17,6 +17,10 @@ type Options = {
   region?: ?string,
   awsConfig?: ?{ ... },
   cloudformation?: ?AWS.CloudFormation,
+  /**
+   * Whether to clear the screen each time resource states are printed (defaults to false).
+   */
+  clearScreen?: boolean,
 }
 
 export default class StackResourceWatcher {
@@ -60,7 +64,7 @@ export default class StackResourceWatcher {
     if (this._intervalID == null) return
 
     const StackNames = this._StackNames
-    const { awsConfig, cloudformation } = this._options
+    const { awsConfig, cloudformation, clearScreen } = this._options
 
     const stackResources: {
       resources?: StackResource[],
@@ -73,8 +77,10 @@ export default class StackResourceWatcher {
         )
       )
     )
-    process.stderr.write(ansi.clearScreen)
-    process.stderr.write(ansi.cursorTo(0, 0))
+    if (clearScreen !== false) {
+      process.stderr.write(ansi.clearScreen)
+      process.stderr.write(ansi.cursorTo(0, 0))
+    }
     for (let i = 0; i < StackNames.length; i++) {
       const { resources, error } = stackResources[i]
       process.stderr.write(
