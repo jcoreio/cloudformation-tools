@@ -156,7 +156,9 @@ export default async function deployCloudFormationStack({
             : null
         }
         await Promise.all([
-          cloudformation.waitFor('stackDeleteComplete', { StackName }),
+          cloudformation
+            .waitFor('stackDeleteComplete', { StackName })
+            .promise(),
           cloudformation.deleteStack({ StackName }).promise(),
         ])
       } catch (error) {
