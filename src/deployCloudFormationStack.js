@@ -3,7 +3,6 @@
  * @prettier
  */
 
-import readline from 'readline'
 import { inspect } from 'util'
 import AWS from 'aws-sdk'
 import fs from 'fs-extra'
@@ -15,6 +14,7 @@ import { map } from 'lodash'
 import { type Readable } from 'stream'
 import S3Uploader from './S3Uploader'
 import type StackResourceWatcher from './StackResourceWatcher'
+import inquirer from 'inquirer'
 
 type Parameter = {
   ParameterKey: string,
@@ -78,7 +78,6 @@ export default async function deployCloudFormationStack({
   ChangeSetName: string,
   ChangeSetType: string,
   HasChanges: boolean,
-  UserAborted: boolean,
   Outputs: { [resourceName: string]: string },
 }> {
   if (!StackName) throw new Error('missing StackName')
@@ -161,6 +160,8 @@ export default async function deployCloudFormationStack({
     ].includes(StackStatus)
 
     if (StackPolicy && !createFailed) {
+      // eslint-disable-next-line no-console
+      console.error(`Setting policy on stack ${StackName}...`)
       await cloudformation
         .setStackPolicy({
           StackName,
@@ -169,6 +170,21 @@ export default async function deployCloudFormationStack({
         .promise()
     }
     if (createFailed && replaceIfCreateFailed) {
+      if (approve) {
+        const { approved } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'approved',
+            message: `Stack ${StackName} already exists in ${StackStatus} state; do you want to delete it?`,
+            default: true,
+          },
+        ])
+        if (!approved) {
+          throw new Error(
+            `Stack ${StackName} already exists in ${StackStatus} state, but you chose not to delete it`
+          )
+        }
+      }
       // eslint-disable-next-line no-console
       console.error(`Deleting existing ${StackStatus} stack: ${StackName}...`)
       await watchDuring(() =>
@@ -182,10 +198,9 @@ export default async function deployCloudFormationStack({
     } else if (/_IN_PROGRESS$/.test(StackStatus)) {
       // eslint-disable-next-line no-console
       console.error(
-        `Waiting for existing stack ${StackStatus.replace(
-          /^(.*)_IN_PROGRESS$/,
-          (m, a) => a.toLowerCase()
-        )} to complete...`
+        `Waiting for ${StackStatus.replace(/^(.*)_IN_PROGRESS$/, (m, a) =>
+          a.toLowerCase()
+        )} to complete on existing stack ${StackName}...`
       )
       await watchDuring(() =>
         cloudformation
@@ -214,7 +229,6 @@ export default async function deployCloudFormationStack({
     Tags,
     s3Uploader,
   })
-  let UserAborted = false
   if (HasChanges) {
     if (approve) {
       const changes = await deployer.describeChangeSet({
@@ -228,39 +242,55 @@ export default async function deployCloudFormationStack({
           depth: 5,
         })}`
       )
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stderr,
-      })
-      await new Promise((resolve: () => any) => {
-        rl.question('Deploy stack? [y/n]:', (answer: string) => {
-          const answerLower = answer && answer.toLowerCase()
-          UserAborted = 'y' !== answerLower && 'yes' !== answerLower
+      const { approved } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'approved',
+          message: 'Deploy stack?',
+          default: true,
+        },
+      ])
+      // eslint-disable-next-line no-console
+      console.error(approved ? 'OK, deploying...' : 'OK, aborted deployment')
+      if (!approved) {
+        if (ExistingStack) {
           // eslint-disable-next-line no-console
           console.error(
-            UserAborted ? 'OK, aborted deployment' : 'OK, deploying...'
+            `Deleting aborted change set ${ChangeSetName} on stack ${StackName}...`
           )
-          rl.close()
-          resolve()
-        })
-      })
+          await cloudformation
+            .deleteChangeSet({ StackName, ChangeSetName })
+            .promise()
+        } else {
+          // eslint-disable-next-line no-console
+          console.error(`Deleting aborted stack ${StackName}...`)
+          await Promise.all([
+            cloudformation
+              .waitFor('stackDeleteComplete', { StackName })
+              .promise(),
+            cloudformation.deleteStack({ StackName }).promise(),
+          ])
+        }
+
+        throw new Error(
+          `User aborted deployment of change set ${ChangeSetName} on stack ${StackName}`
+        )
+      }
     }
 
-    if (!UserAborted) {
-      await watchDuring(async () => {
-        await deployer.executeChangeSet({
-          ChangeSetName,
-          StackName,
-        })
-        await deployer.waitForExecute({
-          StackName,
-          ChangeSetType,
-        })
+    await watchDuring(async () => {
+      await deployer.executeChangeSet({
+        ChangeSetName,
+        StackName,
       })
-    }
+      await deployer.waitForExecute({
+        StackName,
+        ChangeSetType,
+      })
+    })
   } else {
     // eslint-disable-next-line no-console
-    console.error(`stack ${StackName} is already in the desired state`)
+    console.error(`Stack ${StackName} is already in the desired state`)
   }
 
   if (StackPolicy && !ExistingStack) {
@@ -279,7 +309,6 @@ export default async function deployCloudFormationStack({
     ChangeSetName,
     ChangeSetType,
     HasChanges,
-    UserAborted,
     Outputs,
   }
 }

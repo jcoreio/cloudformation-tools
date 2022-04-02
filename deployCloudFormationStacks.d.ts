@@ -43,7 +43,6 @@ export default function deployCloudFormationStacks(options: {
     ChangeSetName: string
     ChangeSetType: string
     HasChanges: boolean
-    UserAborted: boolean
     Outputs: Record<string, string>
   }>
 >
