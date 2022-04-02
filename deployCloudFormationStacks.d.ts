@@ -1,17 +1,6 @@
 import AWS from 'aws-sdk'
 import { Readable } from 'stream'
 
-type Parameter = {
-  ParameterKey: string
-  ParameterValue: string
-  UsePreviousValue?: boolean | null | undefined
-}
-
-type Tag = {
-  Key: string
-  Value: string
-}
-
 export default function deployCloudFormationStacks(options: {
   awsConfig?: AWS.ConfigurationOptions | null
   cloudformation?: AWS.CloudFormation | null | undefined
@@ -19,16 +8,27 @@ export default function deployCloudFormationStacks(options: {
   stacks: Array<{
     awsConfig?: AWS.ConfigurationOptions | null
     region?: string | null | undefined
-    StackName: string
+    StackName: AWS.CloudFormation.StackName
     Template?: Record<string, any> | null | undefined
     TemplateFile?: string | null | undefined
     TemplateBody?: Buffer | string | (() => Readable) | null | undefined
-    StackPolicy?: Record<string, any> | undefined
-    Parameters?: Record<string, any> | Array<Parameter> | null | undefined
-    Capabilities?: Array<string> | null | undefined
+    StackPolicy?: AWS.CloudFormation.StackPolicyBody | undefined
+    Parameters?:
+      | Record<
+          AWS.CloudFormation.ParameterKey,
+          AWS.CloudFormation.ParameterValue
+        >
+      | Array<AWS.CloudFormation.Parameter>
+      | null
+      | undefined
+    Capabilities?: AWS.CloudFormation.Capabilities | null | undefined
     RoleARN?: string | null | undefined
     NotificationARNs?: Array<string> | null | undefined
-    Tags?: Record<string, any> | Array<Tag> | null | undefined
+    Tags?:
+      | Record<AWS.CloudFormation.TagKey, AWS.CloudFormation.TagValue>
+      | Array<AWS.CloudFormation.Tag>
+      | null
+      | undefined
     readOutputs?: boolean | null | undefined
     replaceIfCreateFailed?: boolean | null | undefined
   }>
@@ -40,9 +40,12 @@ export default function deployCloudFormationStacks(options: {
   }
 }): Promise<
   Array<{
-    ChangeSetName: string
-    ChangeSetType: string
+    ChangeSetName: AWS.CloudFormation.ChangeSetName
+    ChangeSetType: AWS.CloudFormation.ChangeSetType
     HasChanges: boolean
-    Outputs: Record<string, string>
+    Outputs: Record<
+      AWS.CloudFormation.OutputKey,
+      AWS.CloudFormation.OutputValue
+    >
   }>
 >

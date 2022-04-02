@@ -2,7 +2,9 @@ import AWS from 'aws-sdk'
 
 export default function getStackOutputs(options: {
   cloudformation?: AWS.CloudFormation | null | undefined
-  StackName: string
+  StackName: AWS.CloudFormation.StackName
   region?: string | null | undefined
   awsConfig?: AWS.ConfigurationOptions | null
-}): Promise<Record<string, string>>
+}): Promise<
+  Record<AWS.CloudFormation.OutputKey, AWS.CloudFormation.OutputValue>
+>

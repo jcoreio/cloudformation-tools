@@ -5,5 +5,5 @@ export default function describeCloudFormationFailure(options: {
   stream?: Writable | null | undefined
   awsConfig?: AWS.ConfigurationOptions | null
   cloudformation?: AWS.CloudFormation | null | undefined
-  StackName: string
+  StackName: AWS.CloudFormation.StackName
 }): Promise<void>
