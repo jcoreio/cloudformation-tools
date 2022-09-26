@@ -5,7 +5,7 @@
 
 import { type StackEvent } from './getCurrentStackEvents'
 import { type Writable } from 'stream'
-import printColumns from './printColumns'
+import layoutColumns from './layoutColumns'
 import chalk from 'chalk'
 
 function statusColor(status: string): (text: string) => string {
@@ -20,29 +20,42 @@ export default async function printStackEvents({
   events,
   out = process.stderr,
   printHeader,
+  width = Math.max(80, (out: any).columns || 200),
 }: {|
   events: AsyncIterable<StackEvent>,
   out?: Writable,
   printHeader?: boolean,
+  width?: number,
 |}) {
   const numColumns = 5
-  const trueWidth = (out: any).columns ?? 80
-  let width = trueWidth - numColumns + 1
+  let remWidth = width - (numColumns - 1) * 2
 
-  const minColWidth = width / numColumns
+  const statusWidth =
+    [
+      'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+      'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+      'UPDATE_ROLLBACK_IN_PROGRESS',
+    ].find((s) => s.length < remWidth / 6)?.length ??
+    'UPDATE_IN_PROGRESS'.length
+  remWidth -= statusWidth
 
-  const timestampWidth = Math.min(24, minColWidth)
-  width -= timestampWidth
-  const stackNameWidth = Math.min(32, minColWidth)
-  width -= stackNameWidth
-  const resourceIdWidth = Math.min(32, minColWidth)
-  width -= resourceIdWidth
-  const statusWidth = Math.min(
-    'UPDATE_FAILED_ROLLBACK_IN_PROGRESS'.length,
-    minColWidth
-  )
-  width -= statusWidth
-  const reasonWidth = width
+  const timestampWidth =
+    'MM/dd/yyyy HH:mm:ss AM'.length < width / 5
+      ? 'MM/dd/yyyy HH:mm:ss AM'.length
+      : 'HH:mm:ss AM'.length
+  remWidth -= timestampWidth
+  let stackNameWidth, resourceIdWidth, reasonWidth
+  if (remWidth / 3 < 32) {
+    stackNameWidth = resourceIdWidth = Math.floor(remWidth / 3)
+    remWidth -= stackNameWidth + resourceIdWidth
+    reasonWidth = remWidth
+  } else {
+    reasonWidth = Math.floor(remWidth / 2)
+    remWidth -= reasonWidth
+    resourceIdWidth = Math.floor(remWidth / 2)
+    remWidth -= resourceIdWidth
+    stackNameWidth = remWidth
+  }
 
   const widths = [
     timestampWidth,
@@ -53,7 +66,7 @@ export default async function printStackEvents({
   ]
   if (printHeader) {
     out.write(
-      printColumns({
+      layoutColumns({
         columns: [
           'Timestamp',
           'Stack Name',
@@ -62,15 +75,15 @@ export default async function printStackEvents({
           'Resource Status Reason',
         ],
         widths,
-        delimiter: ' ',
+        delimiter: '  ',
       })
     )
-    out.write('='.repeat(trueWidth) + '\n')
+    out.write('='.repeat(width) + '\n')
   }
   for await (const event of events) {
     out.write(
       statusColor(event.ResourceStatus)(
-        printColumns({
+        layoutColumns({
           columns: [
             event.Timestamp.toLocaleString(),
             event.StackName,
@@ -79,7 +92,7 @@ export default async function printStackEvents({
             event.ResourceStatusReason,
           ],
           widths,
-          delimiter: ' ',
+          delimiter: '  ',
         })
       )
     )

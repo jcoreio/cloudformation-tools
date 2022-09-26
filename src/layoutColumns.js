@@ -3,6 +3,23 @@
  * @flow
  */
 
+export function wrapIndex(s: string, maxWidth: number): number {
+  if (s.length <= maxWidth) return s.length
+  for (let i = maxWidth; i >= Math.min(3, maxWidth); i--) {
+    if (/\s/.test(s[i - 1])) return i
+  }
+  for (let i = maxWidth; i >= Math.min(3, maxWidth); i--) {
+    if (
+      /[a-z0-9]/i.test(s[i]) &&
+      (/[^a-z0-9]/i.test(s[i - 1]) ||
+        /[a-z0-9][A-Z]|[0-9][a-zA-Z]/.test(s.substring(i - 1, i + 1)))
+    ) {
+      return i
+    }
+  }
+  return maxWidth
+}
+
 export default function layoutColumns({
   columns,
   widths,
@@ -17,24 +34,7 @@ export default function layoutColumns({
   do {
     const line = strColumns.map((text: string, index: number): string => {
       if (text.length > widths[index]) {
-        let splitIndex = Math.min(
-          text.match(/\s/)?.index ??
-            text.match(/[^a-z0-9]/i)?.index ??
-            text.length,
-          widths[index]
-        )
-        if (splitIndex === 0) {
-          const lastIndex =
-            text.match(/[a-z0-9_]/i)?.index ?? text.match(/\S/)?.index ?? 1
-          const sub = text.substring(lastIndex)
-          splitIndex = Math.min(
-            (sub.match(/\s/)?.index ??
-              sub.match(/[^a-z0-9]/i)?.index ??
-              widths[index] ??
-              sub.length) + lastIndex,
-            widths[index]
-          )
-        }
+        const splitIndex = wrapIndex(text, widths[index])
         const result = text.substring(0, splitIndex).trim()
         strColumns[index] = text.substring(splitIndex).trim()
         return result.padEnd(widths[index], ' ')
