@@ -34,7 +34,7 @@ export default function watchStackResources({
   const interval = setInterval(onInterval, delay || 5000)
   async function onInterval() {
     const resources = await Promise.all(
-      StackNames.map(StackName =>
+      StackNames.map((StackName) =>
         getStackResources({ cloudformation, awsConfig, StackName })
       )
     )

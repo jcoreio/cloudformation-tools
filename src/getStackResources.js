@@ -31,10 +31,9 @@ export default async function getStackResources({
   do {
     const options = { StackName }
     if (NextToken) (options: any).NextToken = NextToken
-    ;({
-      StackResourceSummaries,
-      NextToken,
-    } = await cloudformation.listStackResources(options).promise())
+    ;({ StackResourceSummaries, NextToken } = await cloudformation
+      .listStackResources(options)
+      .promise())
     resources.push(...StackResourceSummaries)
   } while (NextToken)
   return resources

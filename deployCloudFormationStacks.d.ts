@@ -1,12 +1,12 @@
 import AWS from 'aws-sdk'
-import { Readable } from 'stream'
+import { Readable, Writable } from 'stream'
 
 export default function deployCloudFormationStacks(options: {
   awsConfig?: AWS.ConfigurationOptions | null
   cloudformation?: AWS.CloudFormation | null | undefined
-  watchResources?: boolean | null | undefined
   stacks: Array<{
     awsConfig?: AWS.ConfigurationOptions | null
+
     region?: string | null | undefined
     StackName: AWS.CloudFormation.StackName
     Template?: Record<string, any> | null | undefined
@@ -31,6 +31,7 @@ export default function deployCloudFormationStacks(options: {
       | undefined
     readOutputs?: boolean | null | undefined
     replaceIfCreateFailed?: boolean | null | undefined
+    logEvents?: boolean | Writable
   }>
   s3?: {
     Bucket: string

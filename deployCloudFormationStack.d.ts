@@ -1,16 +1,9 @@
 import AWS from 'aws-sdk'
-import { Readable } from 'stream'
-
-interface StackResourceWatcher {
-  addStackName(StackName: string): any
-  removeStackName(StackName: string): any
-  stop?(): any
-}
+import { Readable, Writable } from 'stream'
 
 export default function deployCloudFormationStack(options: {
   awsConfig?: AWS.ConfigurationOptions | null
   cloudformation?: AWS.CloudFormation | null | undefined
-  watchResources?: boolean | null | undefined
   region?: string | null | undefined
   approve?: boolean | null | undefined
   StackName: AWS.CloudFormation.StackName
@@ -38,9 +31,8 @@ export default function deployCloudFormationStack(options: {
     forceUpload?: boolean | null | undefined
   }
   readOutputs?: boolean | null | undefined
-  signalWatchable?: (() => any) | null | undefined
   replaceIfCreateFailed?: boolean | null | undefined
-  watcher?: StackResourceWatcher | null | undefined
+  logEvents?: boolean | Writable
 }): Promise<{
   ChangeSetName: AWS.CloudFormation.ChangeSetName
   ChangeSetType: AWS.CloudFormation.ChangeSetType

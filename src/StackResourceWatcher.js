@@ -71,18 +71,25 @@ export default class StackResourceWatcher {
       resources?: StackResource[],
       error?: Error,
     }[] = await Promise.all(
-      StackNames.map(async (StackName: string) => {
-        try {
-          const resources = await getStackResources({
-            cloudformation,
-            awsConfig,
-            StackName,
-          })
-          return { resources }
-        } catch (error) {
-          return { error }
+      StackNames.map(
+        async (
+          StackName: string
+        ): {
+          resources?: StackResource[],
+          error?: Error,
+        } => {
+          try {
+            const resources = await getStackResources({
+              cloudformation,
+              awsConfig,
+              StackName,
+            })
+            return { resources }
+          } catch (error) {
+            return { error }
+          }
         }
-      })
+      )
     )
     if (clearScreen !== false) {
       process.stderr.write(ansi.eraseLines(this._linesWritten + 1))

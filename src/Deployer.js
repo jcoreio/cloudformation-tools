@@ -54,7 +54,7 @@ export default class Deployer {
       // When creating a new stack, UsePreviousValue: true is invalid.
       // For such parameters, users should either override with new value,
       // or set a Default value in template to successfully create a stack.
-      Parameters = Parameters.filter(p => !p.UsePreviousValue)
+      Parameters = Parameters.filter((p) => !p.UsePreviousValue)
     } else {
       ChangeSetType = 'UPDATE'
       const summary = await this._client
@@ -62,10 +62,10 @@ export default class Deployer {
         .promise()
       // UsePreviousValue not valid if parameter is new
       const existingParameters = new Set(
-        summary.Parameters.map(p => p.ParameterKey)
+        summary.Parameters.map((p) => p.ParameterKey)
       )
       Parameters = Parameters.filter(
-        p => !p.UsePreviousValue || existingParameters.has(p.ParameterKey)
+        (p) => !p.UsePreviousValue || existingParameters.has(p.ParameterKey)
       )
     }
 
@@ -138,7 +138,7 @@ export default class Deployer {
         .promise()
 
       const thisChangeSetInfo = Summaries.find(
-        row => ChangeSetName === row.ChangeSetId
+        (row) => ChangeSetName === row.ChangeSetId
       )
       if (thisChangeSetInfo) {
         const { Status, StatusReason } = thisChangeSetInfo
@@ -176,7 +176,7 @@ export default class Deployer {
         }
       }
       if (!done) {
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        await new Promise((resolve) => setTimeout(resolve, 2000))
       }
     } while (!done)
     return { HasChanges }

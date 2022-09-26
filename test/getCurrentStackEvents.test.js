@@ -6,8 +6,8 @@ import { getCurrentStackEvents } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-describe(`getCurrentStackEvents`, function() {
-  it(`works`, async function(): Promise<void> {
+describe(`getCurrentStackEvents`, function () {
+  it(`works`, async function (): Promise<void> {
     const events = [
       {
         StackId: 'XXXX',

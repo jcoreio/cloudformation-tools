@@ -16,7 +16,8 @@ function displayCommand(command, args) {
 function spawn(command, args, options) {
   console.error(displayCommand(command, Array.isArray(args) ? args : []))
   const child = _spawn(command, args, options)
-  if (child.stderr) child.stderr.on('data', data => process.stderr.write(data))
+  if (child.stderr)
+    child.stderr.on('data', (data) => process.stderr.write(data))
   return child
 }
 

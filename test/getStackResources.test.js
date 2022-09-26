@@ -6,8 +6,8 @@ import { getStackResources } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-describe(`getStackResources`, function() {
-  it(`works`, async function(): Promise<void> {
+describe(`getStackResources`, function () {
+  it(`works`, async function (): Promise<void> {
     const resources = [
       {
         LogicalResourceId: 'AppTaskDefinition',

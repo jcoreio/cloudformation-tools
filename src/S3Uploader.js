@@ -35,7 +35,7 @@ async function checksum(
     return hash.digest('hex')
   }
   const input = data()
-  return new Promise((resolve: string => any, reject: Error => any) => {
+  return new Promise((resolve: (string) => any, reject: (Error) => any) => {
     input.on('error', (error: Error) => {
       input.removeAllListeners()
       reject(error)
@@ -124,7 +124,10 @@ export default class S3Uploader {
     return await s3
       .headObject({ Bucket, Key })
       .promise()
-      .then(() => true, () => false)
+      .then(
+        () => true,
+        () => false
+      )
   }
 
   makeUrl(Key: string): string {

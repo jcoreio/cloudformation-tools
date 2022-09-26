@@ -5,27 +5,39 @@
 
 import AWS from 'aws-sdk'
 
-type StackEvent = {
+export type StackEvent = {
   StackId: string,
   EventId: string,
   StackName: string,
   LogicalResourceId: string,
   PhysicalResourceId: string,
   ResourceType: string,
-  Timestamp: string,
+  Timestamp: Date,
   ResourceStatus: string,
   ResourceStatusReason?: string,
   ResourceProperties?: string,
+}
+
+export function isRootStackEvent(event: StackEvent): boolean {
+  return (
+    event.ResourceType === 'AWS::CloudFormation::Stack' &&
+    event.StackName === event.LogicalResourceId &&
+    event.PhysicalResourceId === event.StackId
+  )
 }
 
 export default async function* getCurrentStackEvents({
   awsConfig,
   cloudformation,
   StackName,
+  since,
+  signal,
 }: {
   awsConfig?: ?{ ... },
   cloudformation?: ?AWS.CloudFormation,
   StackName: string,
+  since?: number | Date,
+  signal?: AbortSignal,
 }): AsyncIterable<StackEvent> {
   if (!StackName) throw new Error('missing StackName')
   if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig || {})
@@ -37,16 +49,17 @@ export default async function* getCurrentStackEvents({
     ;({ StackEvents, NextToken } = await cloudformation
       .describeStackEvents(options)
       .promise())
-    for (let event of StackEvents) {
+    for (const event: StackEvent of StackEvents) {
       if (
-        'AWS::CloudFormation::Stack' === event.ResourceType &&
-        /_COMPLETE$/.test(event.ResourceStatus) &&
-        count > 0
+        (isRootStackEvent(event) &&
+          !event.ResourceStatus.includes('IN_PROGRESS') &&
+          count > 0) ||
+        (since != null && event.Timestamp <= since)
       ) {
         return
       }
-      count++
+      if (event.Timestamp) count++
       yield event
     }
-  } while (NextToken)
+  } while (NextToken && !signal?.aborted)
 }

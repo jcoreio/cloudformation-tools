@@ -7,8 +7,8 @@ import { describeCloudFormationFailure } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-describe(`describeCloudFormationFailure`, function() {
-  it(`works`, async function(): Promise<void> {
+describe(`describeCloudFormationFailure`, function () {
+  it(`works`, async function (): Promise<void> {
     const events = [
       {
         StackId: 'XXXX',
@@ -197,7 +197,7 @@ describe(`describeCloudFormationFailure`, function() {
     const output = []
 
     await describeCloudFormationFailure({
-      stream: { write: chunk => output.push(chunk) },
+      stream: { write: (chunk) => output.push(chunk) },
       cloudformation,
       StackName: 'foo',
     })

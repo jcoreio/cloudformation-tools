@@ -28,12 +28,12 @@ export default async function getStackOutputs({
       StackName,
     })
     .promise()
-  return fromPairs(Outputs.map(o => [o.OutputKey, o.OutputValue]))
+  return fromPairs(Outputs.map((o) => [o.OutputKey, o.OutputValue]))
 }
 
 if (!module.parent) {
   getStackOutputs({ StackName: process.argv[2] }).then(
-    outputs => console.log(outputs), // eslint-disable-line no-console
+    (outputs) => console.log(outputs), // eslint-disable-line no-console
     (err: Error) => {
       console.error(err.stack) // eslint-disable-line no-console
       process.exit(1)

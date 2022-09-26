@@ -1,0 +1,76 @@
+/**
+ * @prettier
+ * @flow
+ */
+import AWS from 'aws-sdk'
+import getCurrentStackEvents, {
+  type StackEvent,
+  isRootStackEvent,
+} from './getCurrentStackEvents'
+import delay from 'waait'
+
+export default async function* watchStackEvents({
+  awsConfig,
+  cloudformation,
+  StackName,
+  since,
+  maxAttempts = 3,
+  backoff = 2000,
+  pollDelay = 500,
+  signal,
+}: {|
+  awsConfig?: ?{ ... },
+  cloudformation?: ?AWS.CloudFormation,
+  StackName: string,
+  since?: number | Date,
+  maxAttempts?: number,
+  backoff?: number,
+  pollDelay?: number,
+  signal?: AbortSignal,
+|}): AsyncIterator<StackEvent> {
+  do {
+    let events: StackEvent[] = []
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      events = []
+      try {
+        for await (const event of getCurrentStackEvents({
+          awsConfig,
+          cloudformation,
+          StackName,
+          since,
+        })) {
+          events.push(event)
+        }
+        break
+      } catch (error) {
+        if (
+          error.message.includes(`Stack with id ${StackName} does not exist`)
+        ) {
+          return
+        }
+        if (attempt === maxAttempts) {
+          return
+        }
+        await delay(Math.floor(Math.pow(backoff, attempt)))
+      }
+    }
+
+    // AWS returns events in reverse chronological order,
+    // but we want to yield in chronological order so reverse them
+    events.reverse()
+
+    for (const event of events) {
+      yield event
+      // Watch until we reach a complete/failed event for the stack
+      if (
+        isRootStackEvent(event) &&
+        !event.ResourceStatus.includes('IN_PROGRESS')
+      ) {
+        return
+      }
+      since = event.Timestamp
+    }
+
+    await delay(pollDelay)
+  } while (!signal?.aborted)
+}

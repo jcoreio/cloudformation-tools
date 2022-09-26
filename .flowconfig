@@ -5,6 +5,7 @@
 <PROJECT_ROOT>/node_modules/fbjs/.*
 <PROJECT_ROOT>/node_modules/.*/fbjs/.*
 <PROJECT_ROOT>/node_modules/.*/config-chain/.*
+<PROJECT_ROOT>/node_modules/.*/resolve/.*
 
 [include]
 ./src
@@ -16,3 +17,4 @@
 module.system=node
 esproposal.class_static_fields=enable
 esproposal.class_instance_fields=enable
+esproposal.optional_chaining=enable

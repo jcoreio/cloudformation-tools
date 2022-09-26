@@ -38,12 +38,8 @@ async function copyECRImage({
   )
   if (!match) throw Error(`could not parse source Docker image: ${sourceImage}`)
 
-  const [
-    sourceRegistryId,
-    sourceRegion,
-    repositoryName,
-    imageTag,
-  ] = match.slice(1)
+  const [sourceRegistryId, sourceRegion, repositoryName, imageTag] =
+    match.slice(1)
 
   if (destAWSAccountId === sourceRegistryId) {
     console.error(
@@ -62,7 +58,10 @@ async function copyECRImage({
       imageIds: [{ imageTag }],
     })
     .promise()
-    .then(() => (imageExists = true), () => (imageExists = false))
+    .then(
+      () => (imageExists = true),
+      () => (imageExists = false)
+    )
 
   console.error(
     `image ${imageExists ? 'exists' : 'does not exist'} in your ECR`

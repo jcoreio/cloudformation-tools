@@ -1,5 +1,5 @@
 /**
- *@flow
+ * @flow
  * @prettier
  */
 
@@ -9,12 +9,13 @@ import fs from 'fs-extra'
 import Deployer from './Deployer'
 import describeCloudFormationFailure from './describeCloudFormationFailure'
 import getStackOutputs from './getStackOutputs'
-import watchStackResources from './watchStackResources'
 import { map } from 'lodash'
 import { type Readable } from 'stream'
 import S3Uploader from './S3Uploader'
-import type StackResourceWatcher from './StackResourceWatcher'
 import inquirer from 'inquirer'
+import { type Writable } from 'stream'
+import watchStackEvents from './watchStackEvents'
+import printStackEvents from './printStackEvents'
 
 type Parameter = {
   ParameterKey: string,
@@ -29,7 +30,6 @@ type Tag = {
 
 export default async function deployCloudFormationStack({
   cloudformation: _cloudformation,
-  watchResources,
   region,
   awsConfig,
   approve,
@@ -45,12 +45,10 @@ export default async function deployCloudFormationStack({
   Tags,
   s3,
   readOutputs,
-  signalWatchable,
-  watcher,
   replaceIfCreateFailed,
+  logEvents = true,
 }: {
   cloudformation?: ?AWS.CloudFormation,
-  watchResources?: ?boolean,
   region?: ?string,
   awsConfig?: ?{ ... },
   approve?: ?boolean,
@@ -70,9 +68,8 @@ export default async function deployCloudFormationStack({
     SSEKMSKeyId?: ?string,
     forceUpload?: ?boolean,
   },
+  logEvents?: Writable | boolean,
   readOutputs?: ?boolean,
-  signalWatchable?: ?() => mixed,
-  watcher?: ?StackResourceWatcher,
   replaceIfCreateFailed?: ?boolean,
 }): Promise<{
   ChangeSetName: string,
@@ -91,13 +88,13 @@ export default async function deployCloudFormationStack({
     Parameters = map(Parameters, (value, key) => ({
       ParameterKey: key,
       ParameterValue: value == null ? null : String(value),
-    })).filter(p => p.ParameterValue != null)
+    })).filter((p) => p.ParameterValue != null)
   }
   if (Tags && !Array.isArray(Tags)) {
     Tags = map(Tags, (Value, Key) => ({
       Key,
       Value: Value == null ? null : String(Value),
-    })).filter(t => t.Value != null)
+    })).filter((t) => t.Value != null)
   }
 
   const s3Uploader = s3
@@ -117,27 +114,27 @@ export default async function deployCloudFormationStack({
   }
 
   async function watchDuring<R>(procedure: () => Promise<R>): Promise<R> {
-    let watchInterval: ?IntervalID
+    const ac = new AbortController()
     try {
-      if (signalWatchable) signalWatchable()
-      if (watcher) watcher.addStackName(StackName)
-      else {
-        watchInterval = watchResources
-          ? watchStackResources({ cloudformation, awsConfig, StackName })
-          : null
-      }
+      printStackEvents({
+        printHeader: true,
+        out: typeof logEvents === 'boolean' ? process.stderr : logEvents,
+        events: watchStackEvents({
+          cloudformation,
+          StackName,
+          signal: ac.signal,
+        }),
+      }).catch(() => {})
       return await procedure()
     } catch (error) {
-      if (watchInterval != null) clearInterval(watchInterval)
-      if (watcher && watcher.stop) watcher.stop()
+      ac.abort()
       await describeCloudFormationFailure({
         cloudformation,
         StackName,
       }).catch(() => {})
       throw error
     } finally {
-      if (watchInterval != null) clearInterval(watchInterval)
-      if (watcher) watcher.removeStackName(StackName)
+      ac.abort()
     }
   }
 
@@ -215,20 +212,17 @@ export default async function deployCloudFormationStack({
     }
   }
 
-  const {
-    ChangeSetName,
-    ChangeSetType,
-    HasChanges,
-  } = await deployer.createAndWaitForChangeSet({
-    StackName,
-    TemplateBody,
-    Parameters,
-    Capabilities,
-    RoleARN,
-    NotificationARNs,
-    Tags,
-    s3Uploader,
-  })
+  const { ChangeSetName, ChangeSetType, HasChanges } =
+    await deployer.createAndWaitForChangeSet({
+      StackName,
+      TemplateBody,
+      Parameters,
+      Capabilities,
+      RoleARN,
+      NotificationARNs,
+      Tags,
+      s3Uploader,
+    })
   if (HasChanges) {
     if (approve) {
       const changes = await deployer.describeChangeSet({

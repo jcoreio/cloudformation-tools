@@ -1,14 +1,8 @@
 // @flow
 
-export {
-  default as deployCloudFormationStack,
-} from './deployCloudFormationStack'
-export {
-  default as deployCloudFormationStacks,
-} from './deployCloudFormationStacks'
-export {
-  default as describeCloudFormationFailure,
-} from './describeCloudFormationFailure'
+export { default as deployCloudFormationStack } from './deployCloudFormationStack'
+export { default as deployCloudFormationStacks } from './deployCloudFormationStacks'
+export { default as describeCloudFormationFailure } from './describeCloudFormationFailure'
 export { copyECRImage } from './ecr'
 export { default as getCurrentStackEvents } from './getCurrentStackEvents'
 export { default as getHostedZoneIds } from './getHostedZoneIds'

@@ -6,8 +6,8 @@ import { getStackOutputs } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-describe(`getStackOutputs`, function() {
-  it(`works`, async function(): Promise<void> {
+describe(`getStackOutputs`, function () {
+  it(`works`, async function (): Promise<void> {
     const result = {
       Stacks: [
         {
