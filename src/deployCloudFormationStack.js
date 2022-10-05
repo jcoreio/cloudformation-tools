@@ -157,8 +157,7 @@ export default async function deployCloudFormationStack({
     ].includes(StackStatus)
 
     if (StackPolicy && !createFailed) {
-      // eslint-disable-next-line no-console
-      console.error(`Setting policy on stack ${StackName}...`)
+      process.stderr.write(`Setting policy on stack ${StackName}...\n`)
       await cloudformation
         .setStackPolicy({
           StackName,
@@ -182,8 +181,9 @@ export default async function deployCloudFormationStack({
           )
         }
       }
-      // eslint-disable-next-line no-console
-      console.error(`Deleting existing ${StackStatus} stack: ${StackName}...`)
+      process.stderr.write(
+        `Deleting existing ${StackStatus} stack: ${StackName}...\n`
+      )
       await watchDuring(() =>
         Promise.all([
           cloudformation
@@ -193,11 +193,10 @@ export default async function deployCloudFormationStack({
         ])
       )
     } else if (/_IN_PROGRESS$/.test(StackStatus)) {
-      // eslint-disable-next-line no-console
-      console.error(
+      process.stderr.write(
         `Waiting for ${StackStatus.replace(/^(.*)_IN_PROGRESS$/, (m, a) =>
           a.toLowerCase()
-        )} to complete on existing stack ${StackName}...`
+        )} to complete on existing stack ${StackName}...\n`
       )
       await watchDuring(() =>
         cloudformation
@@ -229,12 +228,11 @@ export default async function deployCloudFormationStack({
         ChangeSetName,
         StackName,
       })
-      // eslint-disable-next-line no-console
-      console.error(
+      process.stderr.write(
         `Changes to stack ${StackName}:\n${inspect(changes, {
           colors: true,
           depth: 5,
-        })}`
+        })}\n`
       )
       const { approved } = await inquirer.prompt([
         {
@@ -244,20 +242,19 @@ export default async function deployCloudFormationStack({
           default: true,
         },
       ])
-      // eslint-disable-next-line no-console
-      console.error(approved ? 'OK, deploying...' : 'OK, aborted deployment')
+      process.stderr.write(
+        approved ? 'OK, deploying...\n' : 'OK, aborted deployment\n'
+      )
       if (!approved) {
         if (ExistingStack) {
-          // eslint-disable-next-line no-console
-          console.error(
-            `Deleting aborted change set ${ChangeSetName} on stack ${StackName}...`
+          process.stderr.write(
+            `Deleting aborted change set ${ChangeSetName} on stack ${StackName}...\n`
           )
           await cloudformation
             .deleteChangeSet({ StackName, ChangeSetName })
             .promise()
         } else {
-          // eslint-disable-next-line no-console
-          console.error(`Deleting aborted stack ${StackName}...`)
+          process.stderr.write(`Deleting aborted stack ${StackName}...\n`)
           await Promise.all([
             cloudformation
               .waitFor('stackDeleteComplete', { StackName })
@@ -283,8 +280,7 @@ export default async function deployCloudFormationStack({
       })
     })
   } else {
-    // eslint-disable-next-line no-console
-    console.error(`Stack ${StackName} is already in the desired state`)
+    process.stderr.write(`Stack ${StackName} is already in the desired state\n`)
   }
 
   if (StackPolicy && !ExistingStack) {

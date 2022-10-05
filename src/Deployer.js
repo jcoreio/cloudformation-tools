@@ -12,7 +12,7 @@ export default class Deployer {
   constructor(cloudformationClient, { changesetPrefix } = {}) {
     this._client = cloudformationClient
     this.changesetPrefix =
-      changesetPrefix || 'awscli-cloudformation-package-deploy-'
+      changesetPrefix || 'jcoreio-cloudformation-tools-package-deploy-'
   }
 
   async hasStack(StackName) {
@@ -120,7 +120,7 @@ export default class Deployer {
     StackName,
   }): Promise<{ HasChanges: boolean }> {
     process.stderr.write(
-      `\nWaiting for changeset to be created - ${StackName}...\n`
+      `Waiting for changeset to be created - ${StackName}...\n`
     )
     let retriesRemaining = 20
     let done = false
@@ -193,7 +193,7 @@ export default class Deployer {
 
   async waitForExecute({ StackName, ChangeSetType }) {
     process.stderr.write(
-      `Waiting for stack create/update to complete - ${StackName}\n`
+      `Waiting for stack create/update to complete - ${StackName}...\n`
     )
     await this._client
       .waitFor(
