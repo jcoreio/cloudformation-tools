@@ -20,9 +20,9 @@ export default class Deployer {
     try {
       result = await this._client.describeStacks({ StackName }).promise()
     } catch (error) {
-      if (/stack.+does not exist/i.test(error.message)) return false
+      return false
     }
-    if (!result || result.Stacks.length !== 1) return false
+    if (!result || !result.Stacks.length) return false
 
     // When you run CreateChangeSet on a a stack that does not exist,
     // CloudFormation will create a stack and set it's status
@@ -31,7 +31,7 @@ export default class Deployer {
     // this stack does not exist and call CreateChangeSet will
     // ChangeSetType set to CREATE and not UPDATE.
     const stack = result.Stacks[0]
-    return stack.StackStatus != 'REVIEW_IN_PROGRESS'
+    return stack.StackStatus !== 'REVIEW_IN_PROGRESS'
   }
 
   async createChangeSet({
