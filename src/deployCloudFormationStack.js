@@ -123,6 +123,7 @@ export default async function deployCloudFormationStack({
           cloudformation,
           StackName,
           signal: ac.signal,
+          since: Date.now(),
         }),
       }).catch(() => {})
       return await procedure()
