@@ -344,8 +344,7 @@ ensure the security group exists.
 
 ## `getVPCIdBySubnetId(options)`
 
-Ensures that a security group with the specified name exists in the VPC, creating
-it if needed.
+Fetches and returns the ID of the VPC where the specified subnet is located.
 
 ### `options` object
 
@@ -370,3 +369,31 @@ AWS region. Either `ec2` or `region` must be provided.
 ### Returns
 
 A `Promise` that resolves to a `string` with the ID of the VPC
+
+## `getCIDRByVPCId(options)`
+
+Fetches and returns the CIDR block IP address range of the specified VPC.
+
+### `options` object
+
+#### `awsConfig` (`ConfigurationOptions`, _optional_)
+
+General AWS service configuration options like `region` and `credentials`
+
+#### `vpcId` (`string`, **required**)
+
+ID of the VPC
+
+#### `ec2` (`AWS.EC2`, **conditional**)
+
+Optional EC2 class instance to use for API calls. If no EC2 class instance
+is provided, one will be created using the `region` property. Either
+`ec2` or `region` must be provided.
+
+#### `region` (`string`, **conditional**)
+
+AWS region. Either `ec2` or `region` must be provided.
+
+### Returns
+
+A `Promise` that resolves to a `string` with the IP address range of the VPC

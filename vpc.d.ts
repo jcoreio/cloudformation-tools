@@ -6,3 +6,10 @@ export function getVPCIdBySubnetId(options: {
   region?: string | null | undefined
   awsConfig?: AWS.ConfigurationOptions | null
 }): Promise<AWS.EC2.VpcId>
+
+export function getCIDRByVPCId(options: {
+  vpcId: AWS.EC2.VpcId
+  ec2?: AWS.EC2 | null | undefined
+  region?: string | null | undefined
+  awsConfig?: AWS.ConfigurationOptions | null
+}): Promise<string>
