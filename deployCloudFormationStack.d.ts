@@ -12,7 +12,10 @@ export default function deployCloudFormationStack(options: {
   TemplateBody?: Buffer | string | (() => Readable) | null | undefined
   StackPolicy?: AWS.CloudFormation.StackPolicyBody | null
   Parameters?:
-    | Record<AWS.CloudFormation.ParameterKey, AWS.CloudFormation.ParameterValue>
+    | Record<
+        AWS.CloudFormation.ParameterKey,
+        string | number | null | undefined
+      >
     | Array<AWS.CloudFormation.Parameter>
     | null
     | undefined
