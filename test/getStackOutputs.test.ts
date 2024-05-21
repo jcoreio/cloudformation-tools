@@ -1,7 +1,3 @@
-/**
- * @prettier
- */
-
 import { getStackOutputs } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
@@ -49,7 +45,7 @@ describe(`getStackOutputs`, function () {
     }
 
     const cloudformation = {
-      describeStacks({ StackName }) {
+      describeStacks() {
         return {
           async promise() {
             return result
@@ -58,7 +54,11 @@ describe(`getStackOutputs`, function () {
       },
     }
     expect(
-      await getStackOutputs({ cloudformation, StackName: 'clarity' })
+      await getStackOutputs({
+        // @ts-expect-error mock
+        cloudformation,
+        StackName: 'clarity',
+      })
     ).to.deep.equal({
       HTTPSService: 'foo',
       MQTTSService: 'bar',

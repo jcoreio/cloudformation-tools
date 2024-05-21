@@ -1,8 +1,5 @@
-// @flow
-
 import AWS from 'aws-sdk'
 import { VError } from 'verror'
-
 export async function getSecurityGroupId({
   securityGroupName,
   ec2,
@@ -10,41 +7,49 @@ export async function getSecurityGroupId({
   awsConfig,
   vpcId,
 }: {
-  securityGroupName: string,
-  ec2?: ?AWS.EC2,
-  region?: ?string,
-  awsConfig?: ?{ ... },
-  vpcId: string,
-}): Promise<?string> {
+  securityGroupName: string
+  ec2?: AWS.EC2
+  region?: string
+  awsConfig?: AWS.ConfigurationOptions
+  vpcId: string
+}): Promise<string | undefined> {
   if (!vpcId) throw Error('vpcId is required')
-  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  if (!awsConfig)
+    awsConfig = {
+      ...(region
+        ? {
+            region,
+          }
+        : {}),
+    }
   if (!ec2) ec2 = new AWS.EC2(awsConfig)
-  let securityGroups = []
+  let securityGroups: AWS.EC2.SecurityGroup[] = []
   try {
-    securityGroups = (
-      await ec2
-        .describeSecurityGroups({
-          Filters: [
-            {
-              Name: 'group-name',
-              Values: [securityGroupName],
-            },
-            {
-              Name: 'vpc-id',
-              Values: [vpcId],
-            },
-          ],
-        })
-        .promise()
-    ).SecurityGroups
-  } catch (err) {
+    securityGroups =
+      (
+        await ec2
+          .describeSecurityGroups({
+            Filters: [
+              {
+                Name: 'group-name',
+                Values: [securityGroupName],
+              },
+              {
+                Name: 'vpc-id',
+                Values: [vpcId],
+              },
+            ],
+          })
+          .promise()
+      ).SecurityGroups || []
+  } catch (err: any) {
     if ('InvalidGroup.NotFound' !== err.code)
       throw new VError(
         err,
         `could not fetch security group ID for security group name ${securityGroupName} in VPC ${vpcId}`
       )
   }
-  return securityGroups[0] ? securityGroups[0].GroupId : null
+  return securityGroups[0] ? securityGroups[0].GroupId : undefined
 }
 
 /**
@@ -64,14 +69,23 @@ export async function upsertSecurityGroup({
   region,
   awsConfig,
 }: {
-  securityGroupName: string,
-  securityGroupDescription?: ?string,
-  vpcId: string,
-  ec2?: ?AWS.EC2,
-  region?: ?string,
-  awsConfig?: ?{ ... },
-}): Promise<{ securityGroupId: string }> {
-  if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
+  securityGroupName: string
+  securityGroupDescription?: string
+  vpcId: string
+  ec2?: AWS.EC2
+  region?: string
+  awsConfig?: AWS.ConfigurationOptions
+}): Promise<{
+  securityGroupId: string
+}> {
+  if (!awsConfig)
+    awsConfig = {
+      ...(region
+        ? {
+            region,
+          }
+        : {}),
+    }
   if (!ec2) ec2 = new AWS.EC2(awsConfig)
   let securityGroupId = await getSecurityGroupId({
     securityGroupName,
@@ -91,5 +105,10 @@ export async function upsertSecurityGroup({
         .promise()
     ).GroupId
   }
-  return { securityGroupId }
+  if (!securityGroupId) {
+    throw new Error(`unexpected: failed to get GroupId of security group`)
+  }
+  return {
+    securityGroupId,
+  }
 }

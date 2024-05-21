@@ -1,14 +1,21 @@
-const AWS = require('aws-sdk')
+import AWS from 'aws-sdk'
 
-const { spawn } = require('./childProcess')
+import { spawn } from './childProcess'
 
 /* eslint-disable no-console */
 
-async function loginToECR({ ecr, ...options }) {
+export async function loginToECR({
+  ecr,
+  ...options
+}: { ecr?: AWS.ECR } & AWS.ECR.GetAuthorizationTokenRequest) {
   if (!ecr) ecr = new AWS.ECR()
-  const {
-    authorizationData: [{ authorizationToken, proxyEndpoint }],
-  } = await ecr.getAuthorizationToken(options).promise()
+  const { authorizationData: [{ authorizationToken, proxyEndpoint }] = [] } =
+    await ecr.getAuthorizationToken(options).promise()
+  if (!authorizationToken || !proxyEndpoint) {
+    throw new Error(
+      `unexpected: failed to get authorizationToken or proxyEndpoint from getAuthorizationToken response`
+    )
+  }
   // this is silly...
   const decoded = Buffer.from(authorizationToken, 'base64').toString()
   const [user, password] = decoded.split(/:/)
@@ -20,18 +27,25 @@ async function loginToECR({ ecr, ...options }) {
       encoding: 'utf8',
     }
   )
-  child.stdin.write(password)
-  child.stdin.end()
+  child.stdin?.write(password)
+  child.stdin?.end()
   await child
 }
 
-async function copyECRImage({
+export async function copyECRImage({
   sourceImage,
   destAWSAccountId,
   accessRole,
   externalId,
   ecrOptions,
   forceCopy,
+}: {
+  sourceImage: string
+  destAWSAccountId: string
+  accessRole: string
+  externalId?: string
+  ecrOptions?: AWS.ECR.ClientConfiguration
+  forceCopy?: boolean
 }) {
   const match = /(\d+)\.dkr\.ecr\.(.+?)\.amazonaws\.com\/(.+?):(.+)/.exec(
     sourceImage
@@ -68,7 +82,9 @@ async function copyECRImage({
   )
   const doCopy = !!forceCopy || !imageExists
   if (doCopy) {
-    const externalECROptions = { region: sourceRegion }
+    const externalECROptions: AWS.ECR.ClientConfiguration = {
+      region: sourceRegion,
+    }
 
     if (accessRole) {
       console.error(`Assuming role ${accessRole}...`)
@@ -92,11 +108,16 @@ async function copyECRImage({
     await spawn('docker', ['pull', sourceImage], { stdio: 'inherit' })
   }
 
-  let repositoryUri = null
-  let registryId = null
+  let repositoryUri: string | undefined = undefined
+  let registryId: string | undefined = undefined
   async function getRepositoryUri() {
     ;({
-      repositories: [{ repositoryUri, registryId }],
+      repositories: [
+        { repositoryUri, registryId } = {
+          repositoryUri: undefined,
+          registryId: undefined,
+        },
+      ] = [],
     } = await ecr
       .describeRepositories({ repositoryNames: [repositoryName] })
       .promise())
@@ -113,6 +134,9 @@ async function copyECRImage({
     console.error(`successfully created ECR repo ${repositoryName}`)
     await getRepositoryUri()
   }
+  if (!repositoryUri || !registryId) {
+    throw new Error(`failed to get ECR repositoryUri or registryId`)
+  }
 
   const destImage = `${repositoryUri}:${imageTag}`
 
@@ -124,5 +148,3 @@ async function copyECRImage({
 
   return destImage
 }
-
-module.exports = { copyECRImage }

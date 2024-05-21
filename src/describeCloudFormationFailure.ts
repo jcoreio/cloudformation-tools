@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * @flow
- * @prettier
- */
 
 import type AWS from 'aws-sdk'
 import type { Writable } from 'stream'
@@ -12,7 +8,7 @@ import getCurrentStackEvents from './getCurrentStackEvents'
 
 function wrapString(str: string, width: number): Array<string> {
   if (!str) return []
-  const result = []
+  const result: Array<string> = []
   let start = 0
   while (start < str.length) {
     let end = start + width
@@ -27,24 +23,24 @@ function wrapString(str: string, width: number): Array<string> {
   }
   return result
 }
-
 export default async function describeCloudFormationFailure(options: {
-  stream?: ?Writable,
-  awsConfig?: ?{ ... },
-  cloudformation?: ?AWS.CloudFormation,
-  StackName: string,
+  stream?: Writable | undefined
+  awsConfig?: Record<any, any> | undefined
+  cloudformation?: AWS.CloudFormation | undefined
+  StackName: string
 }) {
   const { awsConfig, cloudformation, StackName } = options
-  const stream = options.stream || process.stderr
+  const stream: Writable = options.stream || process.stderr
   const padding = 25
-
-  for await (let event of getCurrentStackEvents({
+  for await (const event of getCurrentStackEvents({
     awsConfig,
     cloudformation,
     StackName,
   })) {
     if (
-      !/(CREATE|UPDATE)_FAILED|ROLLBACK_IN_PROGRESS/.test(event.ResourceStatus)
+      !/(CREATE|UPDATE)_FAILED|ROLLBACK_IN_PROGRESS/.test(
+        event.ResourceStatus || ''
+      )
     ) {
       continue
     }
@@ -62,23 +58,23 @@ export default async function describeCloudFormationFailure(options: {
       }}\n`
     )
     stream.write(`${padEnd('ResourceType', padding)} ${event.ResourceType}\n`)
-    for (let field of ['LogicalResourceId', 'PhysicalResourceId']) {
+    for (const field of ['LogicalResourceId', 'PhysicalResourceId'] as const) {
       stream.write(chalk`${padEnd(field, padding)} {bold ${event[field]}}\n`)
     }
     const { ResourceStatusReason, ResourceProperties } = event
     if (ResourceStatusReason) {
       stream.write('ResourceStatusReason\n')
-      const width = Number.isFinite((stream: any).columns)
-        ? Math.min(80, Math.max(40, (stream: any).columns - 2))
+      const width = Number.isFinite((stream as any).columns)
+        ? Math.min(80, Math.max(40, (stream as any).columns - 2))
         : 80
-      for (let line of wrapString(ResourceStatusReason, width)) {
+      for (const line of wrapString(ResourceStatusReason, width)) {
         stream.write(chalk`  {bold ${line}}\n`)
       }
     }
     if (ResourceProperties) {
       const parsed = JSON.parse(ResourceProperties)
       stream.write('ResourceProperties\n')
-      for (let prop in parsed) {
+      for (const prop in parsed) {
         stream.write(
           chalk`  {gray ${padEnd(prop, padding - 2)}} {bold ${parsed[prop]}}\n`
         )
@@ -87,9 +83,10 @@ export default async function describeCloudFormationFailure(options: {
     stream.write('\n')
   }
 }
-
 if (!module.parent) {
-  describeCloudFormationFailure({ StackName: process.argv[2] }).then(
+  describeCloudFormationFailure({
+    StackName: process.argv[2],
+  }).then(
     () => process.exit(0),
     (err: Error) => {
       console.error(err.stack) // eslint-disable-line no-console

@@ -1,8 +1,3 @@
-/**
- * @flow
- * @prettier
- */
-
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 import { wrapIndex } from '../src/layoutColumns'
@@ -23,7 +18,7 @@ describe(`wrapIndex`, function () {
     ['Abc0ef', 5, 4],
     ['Abc05f', 5, 5],
     ['Abc 3-fjklskjdf', 10, 4],
-  ]) {
+  ] as const) {
     it(`${s} ${maxWidth} ${expected}`, function () {
       expect(wrapIndex(s, maxWidth)).to.equal(expected)
     })

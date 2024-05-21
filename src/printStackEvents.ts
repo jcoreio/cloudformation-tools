@@ -1,35 +1,31 @@
-/**
- * @prettier
- * @flow
- */
-
-import { type StackEvent } from './getCurrentStackEvents'
-import { type Writable } from 'stream'
+import AWS from 'aws-sdk'
+import { Writable } from 'stream'
 import layoutColumns from './layoutColumns'
 import chalk from 'chalk'
-
-function statusColor(status: string): (text: string) => string {
-  if ('DELETE_COMPLETE' === status) return chalk.gray
-  if (/_COMPLETE$/.test(status)) return chalk.green
-  if (/_FAILED$/.test(status)) return chalk.red
-  if (/_IN_PROGRESS$/.test(status)) return chalk.hex('#0073bb')
-  return (text) => text
+function statusColor(
+  status: AWS.CloudFormation.StackEvent['ResourceStatus']
+): (text: string) => string {
+  if (status) {
+    if ('DELETE_COMPLETE' === status) return chalk.gray
+    if (/_COMPLETE$/.test(status)) return chalk.green
+    if (/_FAILED$/.test(status)) return chalk.red
+    if (/_IN_PROGRESS$/.test(status)) return chalk.hex('#0073bb')
+  }
+  return (text: string) => text
 }
-
 export default async function printStackEvents({
   events,
   out = process.stderr,
   printHeader,
-  width = Math.max(80, (out: any).columns || 200),
-}: {|
-  events: AsyncIterable<StackEvent>,
-  out?: Writable,
-  printHeader?: boolean,
-  width?: number,
-|}) {
+  width = Math.max(80, (out as any).columns || 200),
+}: {
+  events: AsyncIterable<AWS.CloudFormation.StackEvent>
+  out?: Writable
+  printHeader?: boolean
+  width?: number
+}) {
   const numColumns = 5
   let remWidth = width - (numColumns - 1) * 2
-
   const statusWidth =
     [
       'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
@@ -38,7 +34,6 @@ export default async function printStackEvents({
     ].find((s) => s.length < remWidth / 6)?.length ??
     'UPDATE_IN_PROGRESS'.length
   remWidth -= statusWidth
-
   const timestampWidth =
     'MM/dd/yyyy HH:mm:ss AM'.length < width / 5
       ? 'MM/dd/yyyy HH:mm:ss AM'.length
@@ -56,7 +51,6 @@ export default async function printStackEvents({
     remWidth -= resourceIdWidth
     stackNameWidth = remWidth
   }
-
   const widths = [
     timestampWidth,
     stackNameWidth,

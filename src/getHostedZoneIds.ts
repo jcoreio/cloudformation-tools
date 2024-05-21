@@ -1,10 +1,8 @@
-'use strict'
-
 import AWS from 'aws-sdk'
 
-function extractId(zone: ?Object): ?string {
-  const id = zone && zone.Id
-  return id ? id.substring(id.lastIndexOf('/') + 1) : null
+function extractId(zone?: AWS.Route53.HostedZone): string | undefined {
+  const id = zone?.Id
+  return id ? id.substring(id.lastIndexOf('/') + 1) : undefined
 }
 
 export default async function getHostedZoneIds({
@@ -12,10 +10,10 @@ export default async function getHostedZoneIds({
   region,
   awsConfig,
 }: {
-  domain?: ?string,
-  region: String,
-  awsConfig?: ?{ ... },
-}): Promise<{ publicZone: string, privateZone: string }> {
+  domain?: string
+  region: string
+  awsConfig?: AWS.ConfigurationOptions
+}): Promise<{ publicZone: string; privateZone: string }> {
   if (!domain) throw Error(`domain is required`)
   const domainClean = domain.endsWith('.')
     ? domain.substr(0, domain.length - 1)
@@ -34,15 +32,15 @@ export default async function getHostedZoneIds({
     ({ Name }) => Name === `${domainClean}.`
   )
   const publicZone = extractId(
-    thisDomainZones.find(({ Config }) => !Config.PrivateZone)
+    thisDomainZones?.find(({ Config }) => !Config?.PrivateZone)
   )
   const privateZone = extractId(
-    thisDomainZones.find(({ Config }) => Config.PrivateZone)
+    thisDomainZones?.find(({ Config }) => Config?.PrivateZone)
   )
   const errors = []
   if (!publicZone) errors.push('public zone not found')
   if (!privateZone) errors.push('private zone not found')
-  if (errors.length)
+  if (errors.length) {
     throw Error(
       `${errors.join(', ')} for domain ${domain}. Zones: ${JSON.stringify(
         HostedZones,
@@ -50,5 +48,6 @@ export default async function getHostedZoneIds({
         2
       )}`
     )
-  return { publicZone, privateZone }
+  }
+  return { publicZone: publicZone!, privateZone: privateZone! }
 }

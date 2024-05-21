@@ -1,5 +1,3 @@
-// @flow
-
 export { default as deployCloudFormationStack } from './deployCloudFormationStack'
 export { default as deployCloudFormationStacks } from './deployCloudFormationStacks'
 export { default as describeCloudFormationFailure } from './describeCloudFormationFailure'
@@ -11,5 +9,4 @@ export { default as getStackResources } from './getStackResources'
 export { default as printStackResources } from './printStackResources'
 export { upsertSecurityGroup, getSecurityGroupId } from './securityGroups'
 export { getSubnetInfo } from './subnet'
-export type { SubnetInfo } from './subnet'
 export { getVPCIdBySubnetId, getCIDRByVPCId } from './vpc'

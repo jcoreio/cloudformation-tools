@@ -1,7 +1,3 @@
-/**
- * @prettier
- */
-
 import { getStackResources } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
@@ -252,10 +248,12 @@ describe(`getStackResources`, function () {
       },
     ]
     const cloudformation = {
-      listStackResources({ StackName, NextToken }) {
+      listStackResources({
+        NextToken,
+      }: AWS.CloudFormation.ListStackResourcesInput) {
         return {
           async promise() {
-            const start = NextToken || 0
+            const start = parseInt(NextToken || '0')
             const end = Math.min(resources.length, start + 3)
             const StackResourceSummaries = resources.slice(start, end)
             return {
@@ -267,7 +265,11 @@ describe(`getStackResources`, function () {
       },
     }
     expect(
-      await getStackResources({ cloudformation, StackName: 'foo' })
+      await getStackResources({
+        // @ts-expect-error mock
+        cloudformation,
+        StackName: 'foo',
+      })
     ).to.deep.equal(resources)
   })
 })

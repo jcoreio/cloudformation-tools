@@ -1,8 +1,3 @@
-/**
- * @prettier
- * @flow
- */
-
 export function wrapIndex(s: string, maxWidth: number): number {
   if (s.length <= maxWidth) return s.length
   for (let i = maxWidth; i >= Math.min(3, maxWidth); i--) {
@@ -19,17 +14,16 @@ export function wrapIndex(s: string, maxWidth: number): number {
   }
   return maxWidth
 }
-
 export default function layoutColumns({
   columns,
   widths,
   delimiter,
-}: {|
-  columns: any[],
-  widths: number[],
-  delimiter?: string,
-|}): string {
-  const lines = []
+}: {
+  columns: any[]
+  widths: number[]
+  delimiter?: string
+}): string {
+  const lines: Array<any | string> = []
   const strColumns = columns.map((c) => (c == null ? '' : String(c)))
   do {
     const line = strColumns.map((text: string, index: number): string => {

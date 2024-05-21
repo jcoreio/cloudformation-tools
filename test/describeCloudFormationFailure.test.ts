@@ -1,45 +1,11 @@
-/**
- * @prettier
- */
-
-import { getCurrentStackEvents } from '../src'
+import stripAnsi from 'strip-ansi'
+import { describeCloudFormationFailure } from '../src'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-describe(`getCurrentStackEvents`, function () {
+describe(`describeCloudFormationFailure`, function () {
   it(`works`, async function (): Promise<void> {
     const events = [
-      {
-        StackId: 'XXXX',
-        EventId: 'XXXX',
-        StackName: 'clarity-master',
-        LogicalResourceId: 'clarity-master',
-        PhysicalResourceId: 'XXXX',
-        ResourceType: 'AWS::CloudFormation::Stack',
-        Timestamp: '2019-01-22T22:11:34.412Z',
-        ResourceStatus: 'UPDATE_COMPLETE',
-      },
-      {
-        StackId: 'XXXX',
-        EventId: 'XXXX',
-        StackName: 'clarity-master',
-        LogicalResourceId: 'clarity-master',
-        PhysicalResourceId: 'XXXX',
-        ResourceType: 'AWS::CloudFormation::Stack',
-        Timestamp: '2019-01-22T22:11:33.430Z',
-        ResourceStatus: 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
-      },
-      {
-        StackId: 'XXXX',
-        EventId: 'XXXX',
-        StackName: 'clarity-master',
-        LogicalResourceId: 'clarity-master',
-        PhysicalResourceId: 'XXXX',
-        ResourceType: 'AWS::CloudFormation::Stack',
-        Timestamp: '2019-01-22T22:11:15.785Z',
-        ResourceStatus: 'UPDATE_IN_PROGRESS',
-        ResourceStatusReason: 'User Initiated',
-      },
       {
         StackId: 'XXXX',
         EventId: 'XXXX',
@@ -212,10 +178,12 @@ describe(`getCurrentStackEvents`, function () {
       },
     ]
     const cloudformation = {
-      describeStackEvents({ StackName, NextToken }) {
+      describeStackEvents({
+        NextToken,
+      }: AWS.CloudFormation.DescribeStackEventsInput) {
         return {
           async promise() {
-            const start = NextToken || 0
+            const start = parseInt(NextToken || '0')
             const end = Math.min(events.length, start + 3)
             const StackEvents = events.slice(start, end)
             return { StackEvents, NextToken: end < events.length ? end : null }
@@ -224,14 +192,27 @@ describe(`getCurrentStackEvents`, function () {
       },
     }
 
-    const currentEvents = []
-    for await (let event of getCurrentStackEvents({
+    const output: any[] = []
+
+    await describeCloudFormationFailure({
+      // @ts-expect-error mock
+      stream: { write: (chunk) => output.push(chunk) },
+      // @ts-expect-error mock
       cloudformation,
       StackName: 'foo',
-    })) {
-      currentEvents.push(event)
-    }
+    })
 
-    expect(currentEvents).to.deep.equal(events.slice(0, 3))
+    expect(stripAnsi(output.join('').trim())).to.equal(
+      `ResourceStatus            UPDATE_ROLLBACK_IN_PROGRESS
+ResourceType              AWS::CloudFormation::Stack
+LogicalResourceId         clarity-master
+PhysicalResourceId        XXXX
+ResourceStatusReason
+  Parameter validation failed: parameter value undefined for parameter name
+  DBSecurityGroup does not exist, parameter value undefined for parameter name
+  RedisSecurityGroup does not exist, parameter value undefined for parameter name
+  HistorianDBServersAccessSecurityGroup does not
+  exist`
+    )
   })
 })
