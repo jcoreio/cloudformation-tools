@@ -44,9 +44,6 @@ dependencies:
   inquirer:
     specifier: ^8.0.0
     version: 8.2.4
-  lodash:
-    specifier: ^4.17.21
-    version: 4.17.21
   promisify-child-process:
     specifier: ^4.1.1
     version: 4.1.1
@@ -103,9 +100,6 @@ devDependencies:
   '@types/inquirer':
     specifier: ^8.0.0
     version: 8.2.10
-  '@types/lodash':
-    specifier: ^4.17.4
-    version: 4.17.4
   '@types/mocha':
     specifier: ^10.0.0
     version: 10.0.6
@@ -3329,10 +3323,6 @@ packages:
     dependencies:
       '@types/through': 0.0.33
       rxjs: 7.5.7
-    dev: true
-
-  /@types/lodash@4.17.4:
-    resolution: {integrity: sha512-wYCP26ZLxaT3R39kiN2+HcJ4kTd3U1waI/cY7ivWYqFP6pW3ZNpvi6Wd6PHZx7T/t8z0vlkXMg3QYLa7DZ/IJQ==}
     dev: true
 
   /@types/mocha@10.0.6:

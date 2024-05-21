@@ -2,7 +2,6 @@
 
 import type { Writable } from 'stream'
 import chalk from 'chalk'
-import { padEnd } from 'lodash'
 import getCurrentStackEvents from './getCurrentStackEvents'
 import {
   CloudFormationClient,
@@ -56,13 +55,11 @@ export default async function describeCloudFormationFailure(options: {
       continue
     }
     stream.write(
-      chalk`${padEnd('ResourceStatus', padding)} {red ${
-        event.ResourceStatus
-      }}\n`
+      chalk`${'ResourceStatus'.padEnd(padding)} {red ${event.ResourceStatus}}\n`
     )
-    stream.write(`${padEnd('ResourceType', padding)} ${event.ResourceType}\n`)
+    stream.write(`${'ResourceType'.padEnd(padding)} ${event.ResourceType}\n`)
     for (const field of ['LogicalResourceId', 'PhysicalResourceId'] as const) {
-      stream.write(chalk`${padEnd(field, padding)} {bold ${event[field]}}\n`)
+      stream.write(chalk`${field.padEnd(padding)} {bold ${event[field]}}\n`)
     }
     const { ResourceStatusReason, ResourceProperties } = event
     if (ResourceStatusReason) {
@@ -79,7 +76,7 @@ export default async function describeCloudFormationFailure(options: {
       stream.write('ResourceProperties\n')
       for (const prop in parsed) {
         stream.write(
-          chalk`  {gray ${padEnd(prop, padding - 2)}} {bold ${parsed[prop]}}\n`
+          chalk`  {gray ${prop.padEnd(padding - 2)}} {bold ${parsed[prop]}}\n`
         )
       }
     }
