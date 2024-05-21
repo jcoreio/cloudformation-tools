@@ -189,7 +189,10 @@ export default async function deployCloudFormationStack({
         cloudformation.waitFor('stackDeleteComplete', { StackName }).promise(),
         cloudformation.deleteStack({ StackName }).promise(),
       ])
-    } else if (/_IN_PROGRESS$/.test(StackStatus)) {
+    } else if (
+      /_IN_PROGRESS$/.test(StackStatus) &&
+      StackStatus !== 'REVIEW_IN_PROGRESS'
+    ) {
       process.stderr.write(
         `Waiting for ${StackStatus.replace(/^(.*)_IN_PROGRESS$/, (m, a) =>
           a.toLowerCase()
@@ -200,12 +203,10 @@ export default async function deployCloudFormationStack({
           .waitFor(
             StackStatus.replace(
               /^(.+)_IN_PROGRESS$/,
-              (m: string, a: string): string => {
-                if (a === 'REVIEW') a = 'CREATE'
-                return `stack${a.substring(0, 1)}${a
+              (m: string, a: string): string =>
+                `stack${a.substring(0, 1)}${a
                   .substring(1)
                   .toLowerCase()}Complete`
-              }
             )
           )
           .promise()
