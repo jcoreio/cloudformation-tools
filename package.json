@@ -2,58 +2,14 @@
   "name": "@jcoreio/cloudformation-tools",
   "version": "0.0.0-development",
   "description": "Tools to generate CloudFormation templates and launch stacks",
-  "main": "index.js",
-  "module": "es/index.js",
   "type": "commonjs",
   "modules.root": "es",
   "sideEffects": false,
   "scripts": {
-    "lint": "eslint src test --cache",
-    "lint:fix": "eslint --fix src test --cache",
-    "lint:watch": "esw --watch src test --cache",
-    "prettier": "prettier --write *.json *.md *.js *.ts '{src,test}/**/*.js'",
-    "prettier:check": "prettier --list-different *.json *.md *.js *.ts '{src,test}/**/*.js'",
-    "flow": "flow",
-    "flow:coverage": "for file in src/**.js test/**.js; do echo $file; flow coverage $file; done",
-    "flow:watch": "flow-watch -e js,js.flow,flowconfig --ignore es/ --ignore node_modules/ --watch .flowconfig --watch src/ --watch test/",
-    "clean": "rimraf es lib $(cd src; ls) *.js.flow",
-    "build": "pnpm clean && babel src --out-dir es && flow-copy-source -v src/ es && cross-env BABEL_ENV=es5 babel src --out-dir . && flow-copy-source -v src/ .",
-    "test": "cross-env NODE_ENV=production BABEL_ENV=es5 mocha $npm_package_config_mocha && cross-env NODE_ENV=production BABEL_ENV=coverage nyc --reporter=lcov --reporter=text mocha $npm_package_config_mocha",
-    "test:watch": "cross-env NODE_ENV=production BABEL_ENV=test mocha --watch $npm_package_config_mocha",
-    "test:debug": "cross-env NODE_ENV=production BABEL_ENV=test mocha --inspect-brk $npm_package_config_mocha",
-    "codecov": "nyc report --reporter=text-lcov > coverage.lcov; codecov",
-    "prepublishOnly": "pnpm clean && pnpm prettier:check && pnpm lint && flow && tsc && pnpm test && pnpm build",
-    "open:coverage": "open coverage/lcov-report/index.html",
-    "semantic-release": "semantic-release",
-    "travis-deploy-once": "travis-deploy-once"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged && pnpm lint && flow && tsc",
-      "commit-msg": "commitlint -e $GIT_PARAMS",
-      "pre-push": "pnpm test"
-    }
-  },
-  "lint-staged": {
-    "*.{js,json,css,md,ts}": [
-      "prettier --write"
-    ]
-  },
-  "config": {
-    "mocha": "-r @babel/polyfill -r @babel/register ./test/configure.js ./test/**/*.js",
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
-  },
-  "nyc": {
-    "include": [
-      "src/**/*.js"
-    ],
-    "require": [
-      "@babel/register"
-    ],
-    "sourceMap": false,
-    "instrument": false
+    "tc": "toolchain",
+    "toolchain": "toolchain",
+    "test": "toolchain test",
+    "prepublishOnly": "echo This package is meant to be published by semantic-release from the dist build directory. && exit 1"
   },
   "repository": {
     "type": "git",
@@ -70,52 +26,33 @@
   },
   "homepage": "https://github.com/jcoreio/cloudformation-tools#readme",
   "devDependencies": {
-    "@babel/cli": "^7.18.10",
-    "@babel/core": "^7.19.1",
     "@babel/eslint-parser": "^7.19.1",
     "@babel/node": "^7.19.1",
     "@babel/plugin-proposal-async-generator-functions": "^7.19.1",
-    "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/plugin-proposal-export-default-from": "^7.18.10",
-    "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
-    "@babel/plugin-proposal-object-rest-spread": "^7.18.9",
-    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/plugin-syntax-flow": "^7.18.6",
+    "@babel/plugin-syntax-flow": "^7.14.5",
     "@babel/plugin-transform-react-jsx": "^7.19.0",
-    "@babel/plugin-transform-runtime": "^7.19.1",
-    "@babel/polyfill": "^7.12.1",
-    "@babel/preset-env": "^7.19.1",
-    "@babel/preset-flow": "^7.18.6",
-    "@babel/register": "^7.18.9",
-    "@commitlint/cli": "^17.1.2",
-    "@commitlint/config-conventional": "^17.1.0",
-    "@jedwards1211/commitlint-config": "^1.0.2",
-    "@jedwards1211/eslint-config": "^2.0.2",
-    "@jedwards1211/eslint-config-flow": "^3.0.1",
-    "babel-plugin-istanbul": "^6.1.1",
-    "chai": "^4.3.6",
-    "codecov": "^3.8.3",
+    "@jcoreio/eslint-plugin-implicit-dependencies": "^1.1.1",
+    "@jcoreio/toolchain": "^4.5.5",
+    "@jcoreio/toolchain-circle": "^4.5.5",
+    "@jcoreio/toolchain-esnext": "^4.5.5",
+    "@jcoreio/toolchain-flow": "^4.5.5",
+    "@jcoreio/toolchain-mocha": "^4.5.5",
+    "@jcoreio/toolchain-semantic-release": "^4.5.5",
+    "@jcoreio/toolchain-typescript": "^4.5.5",
+    "@typescript-eslint/eslint-plugin": "^7.6.0",
+    "@typescript-eslint/parser": "^7.6.0",
+    "chai": "^4.3.7",
     "copy": "^0.3.2",
     "cross-env": "^7.0.3",
-    "eslint": "^8.24.0",
+    "eslint": "^8.56.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-flowtype": "^8.0.3",
-    "eslint-watch": "^8.0.0",
+    "eslint-plugin-no-only-tests": "^3.1.0",
     "flow-bin": "^0.125.0",
-    "flow-copy-source": "^2.0.9",
-    "flow-watch": "^2.0.0",
-    "husky": "^8.0.1",
-    "istanbul": "^0.4.5",
-    "lint-staged": "^13.0.3",
-    "mocha": "^10.0.0",
-    "nyc": "^15.1.0",
-    "prettier": "^2.7.1",
-    "prettier-eslint": "^15.0.1",
+    "mocha": "^10.2.0",
     "rimraf": "^3.0.2",
-    "semantic-release": "^19.0.5",
     "strip-ansi": "^6.0.0",
-    "travis-deploy-once": "^5.0.11",
-    "typescript": "^4.8.3"
+    "typescript": "^5.1.0"
   },
   "dependencies": {
     "@babel/runtime": "^7.19.0",
@@ -130,5 +67,22 @@
     "table": "^6.8.0",
     "verror": "^1.10.1",
     "waait": "^1.0.5"
-  }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "packageManager": "pnpm@8.11.0"
 }

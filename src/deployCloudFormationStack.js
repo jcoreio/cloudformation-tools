@@ -200,9 +200,11 @@ export default async function deployCloudFormationStack({
           .waitFor(
             StackStatus.replace(
               /^(.+)_IN_PROGRESS$/,
-              (m, a) => {
+              (m: string, a: string): string => {
                 if (a === 'REVIEW') a = 'CREATE'
-                return `stack${a.substring(0, 1)}${a.substring(1).toLowerCase()}Complete`
+                return `stack${a.substring(0, 1)}${a
+                  .substring(1)
+                  .toLowerCase()}Complete`
               }
             )
           )
