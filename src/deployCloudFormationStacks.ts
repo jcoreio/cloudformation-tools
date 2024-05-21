@@ -1,13 +1,11 @@
 import {
-  Capability,
   CloudFormationClient,
   CloudFormationClientConfig,
-  Parameter,
-  SetStackPolicyCommandInput,
-  Tag,
 } from '@aws-sdk/client-cloudformation'
-import deployCloudFormationStack from './deployCloudFormationStack'
-import { Readable, Writable } from 'stream'
+import deployCloudFormationStack, {
+  DeployCloudFormationStackInput,
+  DeployCloudFormationStackOutput,
+} from './deployCloudFormationStack'
 
 export default function deployCloudFormationStacks({
   awsConfig,
@@ -23,41 +21,10 @@ export default function deployCloudFormationStacks({
     SSEKMSKeyId?: string
     forceUpload?: boolean
   }
-  stacks: ReadonlyArray<{
-    region?: string
-    awsConfig?: CloudFormationClientConfig
-    StackName: string
-    Template?: any
-    TemplateFile?: string
-    TemplateBody?: Buffer | string | (() => Readable)
-    StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody']
-    Parameters?:
-      | {
-          [key: string]: Parameter['ParameterValue']
-        }
-      | Parameter[]
-    Capabilities?: Capability[]
-    RoleARN?: string
-    NotificationARNs?: string[]
-    Tags?:
-      | {
-          [key: string]: Tag['Value']
-        }
-      | Tag[]
-    readOutputs?: boolean
-    replaceIfCreateFailed?: boolean
-    logEvents?: Writable | boolean
-  }>
-}): Promise<
-  Array<{
-    ChangeSetName: string
-    ChangeSetType: string
-    HasChanges: boolean
-    Outputs: {
-      [resourceName: string]: string
-    }
-  }>
-> {
+  stacks: ReadonlyArray<
+    Omit<DeployCloudFormationStackInput, 'cloudformation' | 'approve' | 's3'>
+  >
+}): Promise<Array<DeployCloudFormationStackOutput>> {
   return Promise.all(
     stacks.map((stack) =>
       deployCloudFormationStack({

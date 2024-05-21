@@ -28,26 +28,7 @@ import {
 } from '@aws-sdk/client-cloudformation'
 import { S3Client } from '@aws-sdk/client-s3'
 
-export default async function deployCloudFormationStack({
-  cloudformation: _cloudformation,
-  region,
-  awsConfig,
-  approve,
-  StackName,
-  Template,
-  TemplateFile,
-  TemplateBody,
-  StackPolicy,
-  Parameters: _Parameters,
-  Capabilities,
-  RoleARN,
-  NotificationARNs,
-  Tags: _Tags,
-  s3,
-  readOutputs,
-  replaceIfCreateFailed,
-  logEvents = true,
-}: {
+export type DeployCloudFormationStackInput = {
   cloudformation?: CloudFormationClient
   region?: string
   awsConfig?: CloudFormationClientConfig
@@ -56,6 +37,7 @@ export default async function deployCloudFormationStack({
   Template?: any
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
+  BlanketDeletionPolicy?: 'Delete' | 'Retain'
   StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody']
   Parameters?:
     | {
@@ -79,14 +61,38 @@ export default async function deployCloudFormationStack({
   logEvents?: Writable | boolean
   readOutputs?: boolean
   replaceIfCreateFailed?: boolean
-}): Promise<{
+}
+
+export type DeployCloudFormationStackOutput = {
   ChangeSetName: string
   ChangeSetType: string
   HasChanges: boolean
   Outputs: {
     [resourceName: string]: string
   }
-}> {
+}
+
+export default async function deployCloudFormationStack({
+  cloudformation: _cloudformation,
+  region,
+  awsConfig,
+  approve,
+  StackName,
+  Template,
+  TemplateFile,
+  TemplateBody,
+  BlanketDeletionPolicy,
+  StackPolicy,
+  Parameters: _Parameters,
+  Capabilities,
+  RoleARN,
+  NotificationARNs,
+  Tags: _Tags,
+  s3,
+  readOutputs,
+  replaceIfCreateFailed,
+  logEvents = true,
+}: DeployCloudFormationStackInput): Promise<DeployCloudFormationStackOutput> {
   if (!StackName) throw new Error('missing StackName')
   if (!awsConfig)
     awsConfig = {
@@ -122,8 +128,18 @@ export default async function deployCloudFormationStack({
         s3: new S3Client(awsConfig),
       })
     : undefined
+  if (BlanketDeletionPolicy && !Template) {
+    throw new Error(
+      `BlankDeletionPolicy can only be used together with Template.`
+    )
+  }
   if (!TemplateBody) {
     if (Template) {
+      if (BlanketDeletionPolicy) {
+        for (const key in Template.Resources) {
+          Template.Resources[key].DeletionPolicy = BlanketDeletionPolicy
+        }
+      }
       TemplateBody = JSON.stringify(Template, null, 2)
     } else if (TemplateFile) {
       TemplateBody = s3Uploader
