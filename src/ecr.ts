@@ -1,4 +1,16 @@
-import AWS from 'aws-sdk'
+import {
+  CreateRepositoryCommand,
+  DescribeImagesCommand,
+  DescribeRepositoriesCommand,
+  ECRClient,
+  ECRClientConfig,
+  GetAuthorizationTokenCommand,
+  GetAuthorizationTokenCommandInput,
+} from '@aws-sdk/client-ecr'
+import {
+  fromTemporaryCredentials,
+  fromEnv,
+} from '@aws-sdk/credential-providers'
 
 import { spawn } from './childProcess'
 
@@ -7,10 +19,10 @@ import { spawn } from './childProcess'
 export async function loginToECR({
   ecr,
   ...options
-}: { ecr?: AWS.ECR } & AWS.ECR.GetAuthorizationTokenRequest) {
-  if (!ecr) ecr = new AWS.ECR()
+}: { ecr?: ECRClient } & GetAuthorizationTokenCommandInput) {
+  if (!ecr) ecr = new ECRClient()
   const { authorizationData: [{ authorizationToken, proxyEndpoint }] = [] } =
-    await ecr.getAuthorizationToken(options).promise()
+    await ecr.send(new GetAuthorizationTokenCommand(options))
   if (!authorizationToken || !proxyEndpoint) {
     throw new Error(
       `unexpected: failed to get authorizationToken or proxyEndpoint from getAuthorizationToken response`
@@ -44,7 +56,7 @@ export async function copyECRImage({
   destAWSAccountId: string
   accessRole: string
   externalId?: string
-  ecrOptions?: AWS.ECR.ClientConfiguration
+  ecrOptions?: ECRClientConfig
   forceCopy?: boolean
 }) {
   const match = /(\d+)\.dkr\.ecr\.(.+?)\.amazonaws\.com\/(.+?):(.+)/.exec(
@@ -63,15 +75,16 @@ export async function copyECRImage({
   }
 
   const ecrOptionsFinal = ecrOptions || {}
-  const ecr = new AWS.ECR(ecrOptionsFinal)
+  const ecr = new ECRClient(ecrOptionsFinal)
 
   let imageExists = false
   await ecr
-    .describeImages({
-      repositoryName,
-      imageIds: [{ imageTag }],
-    })
-    .promise()
+    .send(
+      new DescribeImagesCommand({
+        repositoryName,
+        imageIds: [{ imageTag }],
+      })
+    )
     .then(
       () => (imageExists = true),
       () => (imageExists = false)
@@ -82,26 +95,24 @@ export async function copyECRImage({
   )
   const doCopy = !!forceCopy || !imageExists
   if (doCopy) {
-    const externalECROptions: AWS.ECR.ClientConfiguration = {
+    const externalECROptions: ECRClientConfig = {
       region: sourceRegion,
     }
 
     if (accessRole) {
       console.error(`Assuming role ${accessRole}...`)
-      externalECROptions.credentials = new AWS.TemporaryCredentials(
-        {
+      externalECROptions.credentials = fromTemporaryCredentials({
+        masterCredentials: fromEnv(),
+        params: {
           RoleArn: accessRole,
           RoleSessionName: 'deploy-monolithic-clarity',
           DurationSeconds: 3600,
           ...(externalId ? { ExternalId: externalId } : {}),
         },
-        // Explicitly pass in EnvironmentCredentials so the SDK doesn't crash
-        // in cases where there's no global AWS config
-        new AWS.EnvironmentCredentials('AWS')
-      )
+      })
     }
     await loginToECR({
-      ecr: new AWS.ECR({ ...ecrOptionsFinal, ...externalECROptions }),
+      ecr: new ECRClient({ ...ecrOptionsFinal, ...externalECROptions }),
       registryIds: [sourceRegistryId],
     })
 
@@ -118,9 +129,9 @@ export async function copyECRImage({
           registryId: undefined,
         },
       ] = [],
-    } = await ecr
-      .describeRepositories({ repositoryNames: [repositoryName] })
-      .promise())
+    } = await ecr.send(
+      new DescribeRepositoriesCommand({ repositoryNames: [repositoryName] })
+    ))
   }
   try {
     await getRepositoryUri()
@@ -130,7 +141,7 @@ export async function copyECRImage({
 
   if (!repositoryUri) {
     console.error(`creating ECR repository ${repositoryName}...`)
-    await ecr.createRepository({ repositoryName }).promise()
+    await ecr.send(new CreateRepositoryCommand({ repositoryName }))
     console.error(`successfully created ECR repo ${repositoryName}`)
     await getRepositoryUri()
   }

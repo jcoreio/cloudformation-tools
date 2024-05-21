@@ -1,4 +1,8 @@
-import AWS from 'aws-sdk'
+import {
+  CloudFormationClient,
+  CloudFormationClientConfig,
+  StackEvent,
+} from '@aws-sdk/client-cloudformation'
 import getCurrentStackEvents, {
   isRootStackEvent,
 } from './getCurrentStackEvents'
@@ -14,17 +18,17 @@ export default async function* watchStackEvents({
   pollDelay = 500,
   signal,
 }: {
-  awsConfig?: AWS.ConfigurationOptions
-  cloudformation?: AWS.CloudFormation
+  awsConfig?: CloudFormationClientConfig
+  cloudformation?: CloudFormationClient
   StackName: string
   since?: number | Date
   maxAttempts?: number
   backoff?: number
   pollDelay?: number
   signal?: AbortSignal
-}): AsyncIterableIterator<AWS.CloudFormation.StackEvent> {
+}): AsyncIterableIterator<StackEvent> {
   do {
-    let events: AWS.CloudFormation.StackEvents = []
+    let events: StackEvent[] = []
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       events = []
       try {

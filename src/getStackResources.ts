@@ -1,26 +1,32 @@
-import AWS from 'aws-sdk'
+import {
+  CloudFormationClient,
+  CloudFormationClientConfig,
+  StackResourceSummary,
+  ListStackResourcesCommand,
+} from '@aws-sdk/client-cloudformation'
 
 export default async function getStackResources({
   cloudformation,
   awsConfig,
   StackName,
 }: {
-  cloudformation?: AWS.CloudFormation | undefined
-  awsConfig?: AWS.ConfigurationOptions
+  cloudformation?: CloudFormationClient
+  awsConfig?: CloudFormationClientConfig
   StackName: string
-}): Promise<AWS.CloudFormation.StackResourceSummaries> {
+}): Promise<StackResourceSummary[]> {
   if (!StackName) throw new Error('missing StackName')
-  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig || {})
-  const resources: AWS.CloudFormation.StackResourceSummaries = []
+  if (!cloudformation)
+    cloudformation = new CloudFormationClient(awsConfig || {})
+  const resources: StackResourceSummary[] = []
   let StackResourceSummaries, NextToken
   do {
     const options = {
       StackName,
     } as const
     if (NextToken) (options as any).NextToken = NextToken
-    ;({ StackResourceSummaries, NextToken } = await cloudformation
-      .listStackResources(options)
-      .promise())
+    ;({ StackResourceSummaries, NextToken } = await cloudformation.send(
+      new ListStackResourcesCommand(options)
+    ))
     StackResourceSummaries?.forEach((r) => resources.push(r))
   } while (NextToken)
   return resources

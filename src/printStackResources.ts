@@ -1,17 +1,22 @@
 #!/usr/bin/env node
 
-import AWS from 'aws-sdk'
 import type { Writable } from 'stream'
 import { table, getBorderCharacters } from 'table'
 import chalk from 'chalk'
+import {
+  StackResource,
+  StackResourceSummary,
+} from '@aws-sdk/client-cloudformation'
 
 function formatStatus(
-  status: AWS.CloudFormation.StackResource['ResourceStatus']
-): string {
-  if ('DELETE_COMPLETE' === status) return chalk.gray(status)
-  if (/_COMPLETE$/.test(status)) return chalk.green(status)
-  if (/_FAILED$/.test(status)) return chalk.red(status)
-  if (/_IN_PROGRESS$/.test(status)) return chalk.hex('#0073bb')(status)
+  status: StackResource['ResourceStatus']
+): string | undefined {
+  if (status) {
+    if ('DELETE_COMPLETE' === status) return chalk.gray(status)
+    if (/_COMPLETE$/.test(status)) return chalk.green(status)
+    if (/_FAILED$/.test(status)) return chalk.red(status)
+    if (/_IN_PROGRESS$/.test(status)) return chalk.hex('#0073bb')(status)
+  }
   return status
 }
 
@@ -20,9 +25,7 @@ export default function printStackResources({
   stream,
 }: {
   stream?: Writable | undefined
-  resources:
-    | AWS.CloudFormation.StackResources
-    | AWS.CloudFormation.StackResourceSummaries
+  resources: StackResource[] | StackResourceSummary[]
 }) {
   if (!resources.length) return
   if (!stream) stream = process.stderr

@@ -2,7 +2,22 @@
  * @prettier
  */
 
-import { CloudFormation } from 'aws-sdk'
+import {
+  Capability,
+  ChangeSetType,
+  CloudFormationClient,
+  CreateChangeSetCommand,
+  DeleteChangeSetCommand,
+  DescribeChangeSetCommand,
+  DescribeStacksCommand,
+  ExecuteChangeSetCommand,
+  GetTemplateSummaryCommand,
+  ListChangeSetsCommand,
+  Parameter,
+  Tag,
+  waitUntilStackCreateComplete,
+  waitUntilStackUpdateComplete,
+} from '@aws-sdk/client-cloudformation'
 import S3Uploader, { parseS3Url } from './S3Uploader'
 import { Readable } from 'stream'
 
@@ -11,11 +26,11 @@ import { Readable } from 'stream'
  * on 2019-01-21
  */
 export default class Deployer {
-  _client: CloudFormation
+  _client: CloudFormationClient
   changesetPrefix: string
 
   constructor(
-    cloudformationClient: CloudFormation,
+    cloudformationClient: CloudFormationClient,
     { changesetPrefix }: { changesetPrefix?: string } = {}
   ) {
     this._client = cloudformationClient
@@ -26,7 +41,7 @@ export default class Deployer {
   async hasStack(StackName: string): Promise<boolean> {
     let result
     try {
-      result = await this._client.describeStacks({ StackName }).promise()
+      result = await this._client.send(new DescribeStacksCommand({ StackName }))
     } catch (error) {
       return false
     }
@@ -54,17 +69,17 @@ export default class Deployer {
   }: {
     StackName: string
     TemplateBody: string | Buffer | (() => Readable)
-    Parameters?: CloudFormation.Parameters
-    Capabilities?: CloudFormation.Capabilities
+    Parameters?: Parameter[]
+    Capabilities?: Capability[]
     RoleARN?: string
     NotificationARNs?: string[]
     s3Uploader?: S3Uploader
-    Tags?: CloudFormation.Tags
+    Tags?: Tag[]
   }) {
     const Description = `Created at ${new Date().toISOString()} UTC`
     const ChangeSetName = `${this.changesetPrefix}${Date.now()}`
 
-    let ChangeSetType
+    let ChangeSetType: ChangeSetType
     if (!(await this.hasStack(StackName))) {
       ChangeSetType = 'CREATE'
 
@@ -74,9 +89,9 @@ export default class Deployer {
       Parameters = Parameters?.filter((p) => !p.UsePreviousValue)
     } else {
       ChangeSetType = 'UPDATE'
-      const summary = await this._client
-        .getTemplateSummary({ StackName })
-        .promise()
+      const summary = await this._client.send(
+        new GetTemplateSummaryCommand({ StackName })
+      )
       // UsePreviousValue not valid if parameter is new
       const existingParameters = new Set(
         summary.Parameters?.map((p) => p.ParameterKey)
@@ -93,11 +108,11 @@ export default class Deployer {
       NotificationARNs?: string[]
       TemplateURL?: string
       TemplateBody?: string
-      ChangeSetType: CloudFormation.ChangeSetType
-      Parameters?: CloudFormation.Parameters
-      Capabilities?: CloudFormation.Capabilities
+      ChangeSetType: ChangeSetType
+      Parameters?: Parameter[]
+      Capabilities?: Capability[]
       Description: string
-      Tags?: CloudFormation.Tags
+      Tags?: Tag[]
     } = {
       ChangeSetName,
       StackName,
@@ -116,7 +131,7 @@ export default class Deployer {
         extension: 'template',
       })
       const { Key, versionId } = parseS3Url(url)
-      params.TemplateURL = s3Uploader.toPathStyleS3Url(Key, versionId)
+      params.TemplateURL = await s3Uploader.toPathStyleS3Url(Key, versionId)
     } else if (typeof TemplateBody === 'function') {
       throw new Error(
         'TemplateBody: () => stream.Readable is not supported without s3Uploader option'
@@ -127,7 +142,7 @@ export default class Deployer {
     if (RoleARN) params.RoleARN = RoleARN
     if (NotificationARNs) params.NotificationARNs = NotificationARNs
 
-    const { Id } = await this._client.createChangeSet(params).promise()
+    const { Id } = await this._client.send(new CreateChangeSetCommand(params))
     return { ChangeSetName: Id, ChangeSetType }
   }
 
@@ -138,9 +153,9 @@ export default class Deployer {
     ChangeSetName: string
     StackName: string
   }) {
-    const { Changes } = await this._client
-      .describeChangeSet({ ChangeSetName, StackName })
-      .promise()
+    const { Changes } = await this._client.send(
+      new DescribeChangeSetCommand({ ChangeSetName, StackName })
+    )
     return Changes
   }
 
@@ -163,11 +178,11 @@ export default class Deployer {
           `timed out waiting for changeset to be created - ${StackName}`
         )
 
-      const { Summaries } = await this._client
-        .listChangeSets({
+      const { Summaries } = await this._client.send(
+        new ListChangeSetsCommand({
           StackName,
         })
-        .promise()
+      )
 
       const thisChangeSetInfo = Summaries?.find(
         (row) => ChangeSetName === row.ChangeSetId
@@ -221,12 +236,12 @@ export default class Deployer {
     ChangeSetName: string
     StackName: string
   }) {
-    return await this._client
-      .executeChangeSet({
+    return await this._client.send(
+      new ExecuteChangeSetCommand({
         ChangeSetName,
         StackName,
       })
-      .promise()
+    )
   }
 
   async waitForExecute({
@@ -234,14 +249,20 @@ export default class Deployer {
     ChangeSetType,
   }: {
     StackName: string
-    ChangeSetType: CloudFormation.ChangeSetType
+    ChangeSetType: ChangeSetType
   }): Promise<void> {
     process.stderr.write(
       `Waiting for stack create/update to complete - ${StackName}...\n`
     )
     await (ChangeSetType === 'CREATE'
-      ? this._client.waitFor('stackCreateComplete', { StackName }).promise()
-      : this._client.waitFor('stackUpdateComplete', { StackName }).promise())
+      ? waitUntilStackCreateComplete(
+          { client: this._client, maxWaitTime: 3600 },
+          { StackName }
+        )
+      : waitUntilStackUpdateComplete(
+          { client: this._client, maxWaitTime: 3600 },
+          { StackName }
+        ))
 
     process.stderr.write(`Successfully created/updated stack - ${StackName}\n`)
   }
@@ -258,12 +279,12 @@ export default class Deployer {
   }: {
     StackName: string
     TemplateBody: string | Buffer | (() => Readable)
-    Parameters?: CloudFormation.Parameters
-    Capabilities?: CloudFormation.Capabilities
+    Parameters?: Parameter[]
+    Capabilities?: Capability[]
     RoleARN?: string
     NotificationARNs?: string[]
     s3Uploader?: S3Uploader
-    Tags?: CloudFormation.Tags
+    Tags?: Tag[]
   }) {
     const { ChangeSetName, ChangeSetType } = await this.createChangeSet({
       StackName,
@@ -287,12 +308,12 @@ export default class Deployer {
     })
 
     if (!HasChanges) {
-      await this._client
-        .deleteChangeSet({
+      await this._client.send(
+        new DeleteChangeSetCommand({
           StackName,
           ChangeSetName,
         })
-        .promise()
+      )
     }
 
     return { ChangeSetName, ChangeSetType, HasChanges }

@@ -1,8 +1,11 @@
-import AWS from 'aws-sdk'
+import {
+  CloudFormationClient,
+  CloudFormationClientConfig,
+  DescribeStackEventsCommand,
+  StackEvent,
+} from '@aws-sdk/client-cloudformation'
 
-export function isRootStackEvent(
-  event: AWS.CloudFormation.StackEvent
-): boolean {
+export function isRootStackEvent(event: StackEvent): boolean {
   return (
     event.ResourceType === 'AWS::CloudFormation::Stack' &&
     event.StackName === event.LogicalResourceId &&
@@ -16,31 +19,31 @@ export default async function* getCurrentStackEvents({
   since,
   signal,
 }: {
-  awsConfig?: AWS.ConfigurationOptions
-  cloudformation?: AWS.CloudFormation | undefined
+  awsConfig?: CloudFormationClientConfig
+  cloudformation?: CloudFormationClient
   StackName: string
   since?: number | Date
   signal?: AbortSignal
-}): AsyncIterable<AWS.CloudFormation.StackEvent> {
+}): AsyncIterable<StackEvent> {
   if (!StackName) throw new Error('missing StackName')
-  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig || {})
-  let StackEvents: AWS.CloudFormation.StackEvents | undefined,
-    NextToken: string | undefined
+  if (!cloudformation)
+    cloudformation = new CloudFormationClient(awsConfig || {})
+  let StackEvents: StackEvent[] | undefined, NextToken: string | undefined
   let count = 0
   do {
     const options = {
       StackName,
     } as const
     if (NextToken) (options as any).NextToken = NextToken
-    ;({ StackEvents, NextToken } = await cloudformation
-      .describeStackEvents(options)
-      .promise())
+    ;({ StackEvents, NextToken } = await cloudformation.send(
+      new DescribeStackEventsCommand(options)
+    ))
     for (const event of StackEvents || []) {
       if (
         (isRootStackEvent(event) &&
           !event.ResourceStatus?.includes('IN_PROGRESS') &&
           count > 0) ||
-        (since != null && event.Timestamp <= since)
+        (since != null && event.Timestamp != null && event.Timestamp <= since)
       ) {
         return
       }

@@ -1,4 +1,8 @@
-import AWS from 'aws-sdk'
+import {
+  DescribeVpcsCommand,
+  EC2Client,
+  EC2ClientConfig,
+} from '@aws-sdk/client-ec2'
 import { getSubnetInfo } from './subnet'
 export async function getVPCIdBySubnetId({
   subnetId,
@@ -7,9 +11,9 @@ export async function getVPCIdBySubnetId({
   awsConfig,
 }: {
   subnetId: string
-  ec2?: AWS.EC2
+  ec2?: EC2Client
   region?: string
-  awsConfig?: AWS.ConfigurationOptions
+  awsConfig?: EC2ClientConfig
 }): Promise<string> {
   const { VpcId } = await getSubnetInfo({
     subnetId,
@@ -29,9 +33,9 @@ export async function getCIDRByVPCId({
   awsConfig,
 }: {
   vpcId: string
-  ec2?: AWS.EC2
+  ec2?: EC2Client
   region?: string
-  awsConfig?: AWS.ConfigurationOptions
+  awsConfig?: EC2ClientConfig
 }): Promise<string> {
   if (!vpcId) throw Error('vpcId is required')
   if (!awsConfig)
@@ -42,12 +46,12 @@ export async function getCIDRByVPCId({
           }
         : {}),
     }
-  if (!ec2) ec2 = new AWS.EC2(awsConfig)
-  const { Vpcs } = await ec2
-    .describeVpcs({
+  if (!ec2) ec2 = new EC2Client(awsConfig)
+  const { Vpcs } = await ec2.send(
+    new DescribeVpcsCommand({
       VpcIds: [vpcId],
     })
-    .promise()
+  )
   if (!Vpcs) throw Error('missing Vpcs in result')
   const [vpc] = Vpcs
   if (!vpc)

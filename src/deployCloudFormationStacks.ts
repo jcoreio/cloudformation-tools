@@ -1,5 +1,12 @@
+import {
+  Capability,
+  CloudFormationClient,
+  CloudFormationClientConfig,
+  Parameter,
+  SetStackPolicyCommandInput,
+  Tag,
+} from '@aws-sdk/client-cloudformation'
 import deployCloudFormationStack from './deployCloudFormationStack'
-import AWS from 'aws-sdk'
 import { Readable, Writable } from 'stream'
 
 export default function deployCloudFormationStacks({
@@ -8,8 +15,8 @@ export default function deployCloudFormationStacks({
   s3,
   stacks,
 }: {
-  cloudformation?: AWS.CloudFormation
-  awsConfig?: AWS.ConfigurationOptions
+  cloudformation?: CloudFormationClient
+  awsConfig?: CloudFormationClientConfig
   s3?: {
     Bucket: string
     prefix?: string
@@ -18,25 +25,25 @@ export default function deployCloudFormationStacks({
   }
   stacks: ReadonlyArray<{
     region?: string
-    awsConfig?: AWS.ConfigurationOptions
+    awsConfig?: CloudFormationClientConfig
     StackName: string
     Template?: any
     TemplateFile?: string
     TemplateBody?: Buffer | string | (() => Readable)
-    StackPolicy?: AWS.CloudFormation.StackPolicyBody
+    StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody']
     Parameters?:
       | {
-          [key: string]: AWS.CloudFormation.ParameterValue
+          [key: string]: Parameter['ParameterValue']
         }
-      | AWS.CloudFormation.Parameters
-    Capabilities?: AWS.CloudFormation.Capabilities
+      | Parameter[]
+    Capabilities?: Capability[]
     RoleARN?: string
     NotificationARNs?: string[]
     Tags?:
       | {
-          [key: string]: AWS.CloudFormation.TagValue
+          [key: string]: Tag['Value']
         }
-      | AWS.CloudFormation.Tags
+      | Tag[]
     readOutputs?: boolean
     replaceIfCreateFailed?: boolean
     logEvents?: Writable | boolean

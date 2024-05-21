@@ -1,6 +1,11 @@
-import AWS from 'aws-sdk'
+import {
+  HostedZone,
+  Route53Client,
+  Route53ClientConfig,
+  ListHostedZonesByNameCommand,
+} from '@aws-sdk/client-route-53'
 
-function extractId(zone?: AWS.Route53.HostedZone): string | undefined {
+function extractId(zone?: HostedZone): string | undefined {
   const id = zone?.Id
   return id ? id.substring(id.lastIndexOf('/') + 1) : undefined
 }
@@ -12,7 +17,7 @@ export default async function getHostedZoneIds({
 }: {
   domain?: string
   region: string
-  awsConfig?: AWS.ConfigurationOptions
+  awsConfig?: Route53ClientConfig
 }): Promise<{ publicZone: string; privateZone: string }> {
   if (!domain) throw Error(`domain is required`)
   const domainClean = domain.endsWith('.')
@@ -20,15 +25,15 @@ export default async function getHostedZoneIds({
     : domain
   if (!domainClean) throw Error(`domain must not be just a trailing dot`)
   if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
-  const { HostedZones } = await new AWS.Route53(awsConfig)
-    .listHostedZonesByName({
+  const { HostedZones } = await new Route53Client(awsConfig).send(
+    new ListHostedZonesByNameCommand({
       DNSName: domainClean,
-      MaxItems: '2',
+      MaxItems: 2,
     })
-    .promise()
+  )
   // DNSName above is a pagination parameter, not a filtering parameter. So we still
   // need to match the domain name. The returned domain names are suffixed with dots.
-  const thisDomainZones = HostedZones.filter(
+  const thisDomainZones = HostedZones?.filter(
     ({ Name }) => Name === `${domainClean}.`
   )
   const publicZone = extractId(

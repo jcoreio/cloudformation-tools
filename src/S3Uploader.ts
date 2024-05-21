@@ -1,13 +1,19 @@
-import AWS from 'aws-sdk'
 import { Readable } from 'stream'
+import { Upload } from '@aws-sdk/lib-storage'
 import crypto from 'crypto'
+import {
+  GetBucketLocationCommand,
+  HeadObjectCommand,
+  PutObjectCommandInput,
+  S3Client,
+} from '@aws-sdk/client-s3'
 
 type Options = {
   Bucket: string
-  prefix?: string | undefined
-  SSEKMSKeyId?: string | undefined
-  forceUpload?: boolean | undefined
-  s3: AWS.S3
+  prefix?: string
+  SSEKMSKeyId?: string
+  forceUpload?: boolean
+  s3: S3Client
 }
 type UploadOptions = {
   Body: Buffer | string | Readable
@@ -46,8 +52,8 @@ export default class S3Uploader {
     | {
         [key: string]: string
       }
-    | null
-    | undefined = null
+    | undefined
+
   constructor(options: Options) {
     this._options = options
   }
@@ -63,16 +69,7 @@ export default class S3Uploader {
 
       return this.makeUrl(Key)
     }
-    const params: {
-      Bucket: string
-      Key: string
-      Body: Buffer | string | Readable
-      ServerSideEncryption: string
-      SSEKMSKeyId?: string
-      Metadata?: {
-        [key: string]: string
-      }
-    } = {
+    const params: PutObjectCommandInput = {
       Bucket,
       Key,
       Body,
@@ -85,25 +82,22 @@ export default class S3Uploader {
     if (this.Metadata) {
       params.Metadata = this.Metadata
     }
-    const uploader = s3.upload(params)
-    uploader.on(
-      'httpUploadProgress',
-      ({
-        loaded,
-        total,
-      }: {
-        loaded: number
-        total?: number | null | undefined
-      }) => {
-        const percentage = total ? ((loaded / total) * 100).toFixed(2) : '?'
-        /* eslint-disable no-console */
-        console.error(
-          `Uploading to ${Key}  ${loaded} / ${total || '?'}  (${percentage}%)`
-        )
-        /* eslint-enable no-console */
-      }
-    )
-    await uploader.promise()
+    const upload = new Upload({
+      client: s3,
+      params,
+    })
+
+    upload.on('httpUploadProgress', ({ loaded, total }) => {
+      const percentage =
+        loaded != null && total ? ((loaded / total) * 100).toFixed(2) : '?'
+      /* eslint-disable no-console */
+      console.error(
+        `Uploading to ${Key}  ${loaded} / ${total || '?'}  (${percentage}%)`
+      )
+      /* eslint-enable no-console */
+    })
+    const output = await upload.done()
+    output.Location
     return this.makeUrl(Key)
   }
   async uploadWithDedup({
@@ -120,11 +114,12 @@ export default class S3Uploader {
   async fileExists(Key: string): Promise<boolean> {
     const { Bucket, s3 } = this._options
     return await s3
-      .headObject({
-        Bucket,
-        Key,
-      })
-      .promise()
+      .send(
+        new HeadObjectCommand({
+          Bucket,
+          Key,
+        })
+      )
       .then(
         () => true,
         () => false
@@ -134,9 +129,17 @@ export default class S3Uploader {
     const { Bucket } = this._options
     return `s3://${Bucket}/${Key}`
   }
-  toPathStyleS3Url(Key: string, version?: string): string {
+  async toPathStyleS3Url(Key: string, version?: string): Promise<string> {
     const { s3, Bucket } = this._options
-    return `http://${s3.config.endpoint}/${Bucket}/${Key}${
+
+    const { LocationConstraint } = await s3.send(
+      new GetBucketLocationCommand({ Bucket })
+    )
+    const endpoint = `s3${
+      LocationConstraint ? `.${LocationConstraint}` : ''
+    }.amazonaws.com`
+
+    return `https://${endpoint}/${Bucket}/${Key}${
       version ? `?versionId=${version}` : ''
     }`
   }

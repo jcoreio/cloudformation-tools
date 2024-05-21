@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
-import type AWS from 'aws-sdk'
 import type { Writable } from 'stream'
 import chalk from 'chalk'
 import { padEnd } from 'lodash'
 import getCurrentStackEvents from './getCurrentStackEvents'
+import {
+  CloudFormationClient,
+  CloudFormationClientConfig,
+} from '@aws-sdk/client-cloudformation'
 
 function wrapString(str: string, width: number): Array<string> {
   if (!str) return []
@@ -25,8 +28,8 @@ function wrapString(str: string, width: number): Array<string> {
 }
 export default async function describeCloudFormationFailure(options: {
   stream?: Writable | undefined
-  awsConfig?: Record<any, any> | undefined
-  cloudformation?: AWS.CloudFormation | undefined
+  awsConfig?: CloudFormationClientConfig
+  cloudformation?: CloudFormationClient
   StackName: string
 }) {
   const { awsConfig, cloudformation, StackName } = options

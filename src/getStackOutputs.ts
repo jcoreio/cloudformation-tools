@@ -1,19 +1,25 @@
 #!/usr/bin/env node
+
+import {
+  CloudFormationClient,
+  CloudFormationClientConfig,
+  DescribeStacksCommand,
+} from '@aws-sdk/client-cloudformation'
+
 /**
  * @flow
  * @prettier
  */
-import AWS from 'aws-sdk'
 export default async function getStackOutputs({
   cloudformation,
   awsConfig,
   StackName,
   region,
 }: {
-  cloudformation?: AWS.CloudFormation | null | undefined
-  awsConfig?: Record<any, any> | null | undefined
+  cloudformation?: CloudFormationClient
+  awsConfig?: CloudFormationClientConfig
   StackName: string
-  region?: string | null | undefined
+  region?: string
 }): Promise<{
   [resource: string]: string
 }> {
@@ -26,12 +32,12 @@ export default async function getStackOutputs({
           }
         : {}),
     }
-  if (!cloudformation) cloudformation = new AWS.CloudFormation(awsConfig)
-  const { Stacks: [{ Outputs = [] } = {}] = [] } = await cloudformation
-    .describeStacks({
+  if (!cloudformation) cloudformation = new CloudFormationClient(awsConfig)
+  const { Stacks: [{ Outputs = [] } = {}] = [] } = await cloudformation.send(
+    new DescribeStacksCommand({
       StackName,
     })
-    .promise()
+  )
   return Object.fromEntries(
     Outputs.flatMap((o) =>
       o.OutputKey != null && o.OutputValue != null

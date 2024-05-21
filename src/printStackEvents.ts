@@ -1,9 +1,9 @@
-import AWS from 'aws-sdk'
 import { Writable } from 'stream'
 import layoutColumns from './layoutColumns'
 import chalk from 'chalk'
+import { StackEvent } from '@aws-sdk/client-cloudformation'
 function statusColor(
-  status: AWS.CloudFormation.StackEvent['ResourceStatus']
+  status: StackEvent['ResourceStatus']
 ): (text: string) => string {
   if (status) {
     if ('DELETE_COMPLETE' === status) return chalk.gray
@@ -19,7 +19,7 @@ export default async function printStackEvents({
   printHeader,
   width = Math.max(80, (out as any).columns || 200),
 }: {
-  events: AsyncIterable<AWS.CloudFormation.StackEvent>
+  events: AsyncIterable<StackEvent>
   out?: Writable
   printHeader?: boolean
   width?: number
@@ -79,7 +79,7 @@ export default async function printStackEvents({
       statusColor(event.ResourceStatus)(
         layoutColumns({
           columns: [
-            event.Timestamp.toLocaleString(),
+            event.Timestamp?.toLocaleString(),
             event.StackName,
             event.LogicalResourceId,
             event.ResourceStatus,

@@ -1,5 +1,12 @@
-import AWS from 'aws-sdk'
+import {
+  CreateSecurityGroupCommand,
+  DescribeSecurityGroupsCommand,
+  EC2Client,
+  EC2ClientConfig,
+  SecurityGroup,
+} from '@aws-sdk/client-ec2'
 import { VError } from 'verror'
+
 export async function getSecurityGroupId({
   securityGroupName,
   ec2,
@@ -8,9 +15,9 @@ export async function getSecurityGroupId({
   vpcId,
 }: {
   securityGroupName: string
-  ec2?: AWS.EC2
+  ec2?: EC2Client
   region?: string
-  awsConfig?: AWS.ConfigurationOptions
+  awsConfig?: EC2ClientConfig
   vpcId: string
 }): Promise<string | undefined> {
   if (!vpcId) throw Error('vpcId is required')
@@ -22,13 +29,13 @@ export async function getSecurityGroupId({
           }
         : {}),
     }
-  if (!ec2) ec2 = new AWS.EC2(awsConfig)
-  let securityGroups: AWS.EC2.SecurityGroup[] = []
+  if (!ec2) ec2 = new EC2Client(awsConfig)
+  let securityGroups: SecurityGroup[] = []
   try {
     securityGroups =
       (
-        await ec2
-          .describeSecurityGroups({
+        await ec2.send(
+          new DescribeSecurityGroupsCommand({
             Filters: [
               {
                 Name: 'group-name',
@@ -40,7 +47,7 @@ export async function getSecurityGroupId({
               },
             ],
           })
-          .promise()
+        )
       ).SecurityGroups || []
   } catch (err: any) {
     if ('InvalidGroup.NotFound' !== err.code)
@@ -72,9 +79,9 @@ export async function upsertSecurityGroup({
   securityGroupName: string
   securityGroupDescription?: string
   vpcId: string
-  ec2?: AWS.EC2
+  ec2?: EC2Client
   region?: string
-  awsConfig?: AWS.ConfigurationOptions
+  awsConfig?: EC2ClientConfig
 }): Promise<{
   securityGroupId: string
 }> {
@@ -86,7 +93,7 @@ export async function upsertSecurityGroup({
           }
         : {}),
     }
-  if (!ec2) ec2 = new AWS.EC2(awsConfig)
+  if (!ec2) ec2 = new EC2Client(awsConfig)
   let securityGroupId = await getSecurityGroupId({
     securityGroupName,
     ec2,
@@ -96,13 +103,13 @@ export async function upsertSecurityGroup({
     // eslint-disable-next-line no-console
     console.error(`creating ${securityGroupName} security group...`)
     securityGroupId = (
-      await ec2
-        .createSecurityGroup({
+      await ec2.send(
+        new CreateSecurityGroupCommand({
           Description: securityGroupDescription || '',
           GroupName: securityGroupName,
           VpcId: vpcId,
         })
-        .promise()
+      )
     ).GroupId
   }
   if (!securityGroupId) {

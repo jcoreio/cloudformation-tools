@@ -1,5 +1,4 @@
 import { inspect } from 'util'
-import AWS from 'aws-sdk'
 import fs from 'fs-extra'
 import Deployer from './Deployer'
 import describeCloudFormationFailure from './describeCloudFormationFailure'
@@ -11,15 +10,25 @@ import inquirer from 'inquirer'
 import { Writable } from 'stream'
 import watchStackEvents from './watchStackEvents'
 import printStackEvents from './printStackEvents'
-type Parameter = {
-  ParameterKey: string
-  ParameterValue: string
-  UsePreviousValue?: boolean
-}
-type Tag = {
-  Key: string
-  Value: string
-}
+import {
+  Capability,
+  CloudFormationClient,
+  CloudFormationClientConfig,
+  DeleteChangeSetCommand,
+  DeleteStackCommand,
+  DescribeStacksCommand,
+  Parameter,
+  SetStackPolicyCommand,
+  SetStackPolicyCommandInput,
+  Tag,
+  waitUntilStackCreateComplete,
+  waitUntilStackDeleteComplete,
+  waitUntilStackImportComplete,
+  waitUntilStackRollbackComplete,
+  waitUntilStackUpdateComplete,
+} from '@aws-sdk/client-cloudformation'
+import { S3Client } from '@aws-sdk/client-s3'
+
 export default async function deployCloudFormationStack({
   cloudformation: _cloudformation,
   region,
@@ -40,34 +49,28 @@ export default async function deployCloudFormationStack({
   replaceIfCreateFailed,
   logEvents = true,
 }: {
-  cloudformation?: AWS.CloudFormation
+  cloudformation?: CloudFormationClient
   region?: string
-  awsConfig?: Record<any, any>
+  awsConfig?: CloudFormationClientConfig
   approve?: boolean
   StackName: string
   Template?: any
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
-  StackPolicy?: any
+  StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody']
   Parameters?:
-    | (
-        | {
-            [key: string]: any
-          }
-        | Array<Parameter>
-      )
-    | undefined
-  Capabilities?: Array<string> | undefined
+    | {
+        [key: string]: Parameter['ParameterValue']
+      }
+    | Parameter[]
+  Capabilities?: Capability[]
   RoleARN?: string | undefined
   NotificationARNs?: Array<string> | undefined
   Tags?:
-    | (
-        | {
-            [key: string]: any
-          }
-        | Array<Tag>
-      )
-    | undefined
+    | {
+        [key: string]: Tag['Value']
+      }
+    | Tag[]
   s3?: {
     Bucket: string
     prefix?: string
@@ -94,26 +97,30 @@ export default async function deployCloudFormationStack({
           }
         : {}),
     }
-  const cloudformation = _cloudformation || new AWS.CloudFormation(awsConfig)
+  const cloudformation = _cloudformation || new CloudFormationClient(awsConfig)
   const deployer = new Deployer(cloudformation)
-  const Parameters =
+  const Parameters: Parameter[] | undefined =
     _Parameters && !Array.isArray(_Parameters)
-      ? map(_Parameters, (value, key) => ({
-          ParameterKey: key,
-          ParameterValue: value == null ? null : String(value),
-        })).filter((p) => p.ParameterValue != null)
+      ? Object.entries(_Parameters)
+          .map(([key, value]) => ({
+            ParameterKey: key,
+            ParameterValue: value == null ? undefined : String(value),
+          }))
+          .filter((p) => p.ParameterValue != null)
       : _Parameters
-  const Tags =
+  const Tags: Tag[] | undefined =
     _Tags && !Array.isArray(_Tags)
-      ? map(_Tags, (Value, Key) => ({
-          Key,
-          Value: Value == null ? null : String(Value),
-        })).filter((t) => t.Value != null)
+      ? Object.entries(_Tags)
+          .map(([Key, Value]) => ({
+            Key,
+            Value: Value == null ? undefined : String(Value),
+          }))
+          .filter((t) => t.Value != null)
       : _Tags
   const s3Uploader = s3
     ? new S3Uploader({
         ...s3,
-        s3: new AWS.S3(awsConfig),
+        s3: new S3Client(awsConfig),
       })
     : undefined
   if (!TemplateBody) {
@@ -153,10 +160,11 @@ export default async function deployCloudFormationStack({
     }
   }
   const { Stacks: [ExistingStack] = [] } = await cloudformation
-    .describeStacks({
-      StackName,
-    })
-    .promise()
+    .send(
+      new DescribeStacksCommand({
+        StackName,
+      })
+    )
     .catch(() => ({
       Stacks: [],
     }))
@@ -167,15 +175,15 @@ export default async function deployCloudFormationStack({
       'ROLLBACK_FAILED',
       'ROLLBACK_COMPLETE',
       'ROLLBACK_IN_PROGRESS',
-    ].includes(StackStatus)
+    ].includes(StackStatus || '')
     if (StackPolicy && !createFailed) {
       process.stderr.write(`Setting policy on stack ${StackName}...\n`)
-      await cloudformation
-        .setStackPolicy({
+      await cloudformation.send(
+        new SetStackPolicyCommand({
           StackName,
           StackPolicyBody: JSON.stringify(StackPolicy, null, 2),
         })
-        .promise()
+      )
     }
     if (createFailed && replaceIfCreateFailed) {
       if (approve) {
@@ -197,52 +205,70 @@ export default async function deployCloudFormationStack({
         `Deleting existing ${StackStatus} stack: ${StackName}...\n`
       )
       Promise.all([
-        cloudformation
-          .waitFor('stackDeleteComplete', {
+        waitUntilStackDeleteComplete(
+          { client: cloudformation, maxWaitTime: 3600 },
+          { StackName }
+        ),
+        cloudformation.send(
+          new DeleteStackCommand({
             StackName,
           })
-          .promise(),
-        cloudformation
-          .deleteStack({
-            StackName,
-          })
-          .promise(),
+        ),
       ])
     } else if (
-      /_IN_PROGRESS$/.test(StackStatus) &&
+      /_IN_PROGRESS$/.test(StackStatus || '') &&
       StackStatus !== 'REVIEW_IN_PROGRESS'
     ) {
-      const event = (() => {
-        switch (StackStatus) {
-          case 'CREATE_IN_PROGRESS':
-            return 'stackCreateComplete'
-          case 'ROLLBACK_IN_PROGRESS':
-          case 'UPDATE_ROLLBACK_IN_PROGRESS':
-          case 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS':
-            return 'stackRollbackComplete'
-          case 'UPDATE_IN_PROGRESS':
-          case 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS':
-            return 'stackUpdateComplete'
-          case 'DELETE_IN_PROGRESS':
-            return 'stackDeleteComplete'
-          case 'IMPORT_IN_PROGRESS':
-          case 'IMPORT_ROLLBACK_IN_PROGRESS':
-            return 'stackImportComplete'
-        }
-        return undefined
-      })()
-      if (event) {
-        process.stderr.write(
-          `Waiting for ${event} to complete on existing stack ${StackName}...\n`
-        )
-        await watchDuring(() =>
-          cloudformation
-            .waitFor(
-              // @ts-expect-error the overload types aren't cooperative
-              event
-            )
-            .promise()
-        )
+      switch (StackStatus) {
+        case 'CREATE_IN_PROGRESS':
+          process.stderr.write(
+            `Waiting for create to complete on existing stack ${StackName}...\n`
+          )
+          await waitUntilStackCreateComplete(
+            { client: cloudformation, maxWaitTime: 3600 },
+            { StackName }
+          )
+          break
+        case 'ROLLBACK_IN_PROGRESS':
+        case 'UPDATE_ROLLBACK_IN_PROGRESS':
+        case 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS':
+          process.stderr.write(
+            `Waiting for rollback to complete on existing stack ${StackName}...\n`
+          )
+          await waitUntilStackRollbackComplete(
+            { client: cloudformation, maxWaitTime: 3600 },
+            { StackName }
+          )
+          break
+        case 'UPDATE_IN_PROGRESS':
+        case 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS':
+          process.stderr.write(
+            `Waiting for update to complete on existing stack ${StackName}...\n`
+          )
+          await waitUntilStackUpdateComplete(
+            { client: cloudformation, maxWaitTime: 3600 },
+            { StackName }
+          )
+          break
+        case 'DELETE_IN_PROGRESS':
+          process.stderr.write(
+            `Waiting for delete to complete on existing stack ${StackName}...\n`
+          )
+          await waitUntilStackDeleteComplete(
+            { client: cloudformation, maxWaitTime: 3600 },
+            { StackName }
+          )
+          break
+        case 'IMPORT_IN_PROGRESS':
+        case 'IMPORT_ROLLBACK_IN_PROGRESS':
+          process.stderr.write(
+            `Waiting for import to complete on existing stack ${StackName}...\n`
+          )
+          await waitUntilStackImportComplete(
+            { client: cloudformation, maxWaitTime: 3600 },
+            { StackName }
+          )
+          break
       }
     }
   }
@@ -285,25 +311,20 @@ export default async function deployCloudFormationStack({
           process.stderr.write(
             `Deleting aborted change set ${ChangeSetName} on stack ${StackName}...\n`
           )
-          await cloudformation
-            .deleteChangeSet({
+          await cloudformation.send(
+            new DeleteChangeSetCommand({
               StackName,
               ChangeSetName,
             })
-            .promise()
+          )
         } else {
           process.stderr.write(`Deleting aborted stack ${StackName}...\n`)
           await Promise.all([
-            cloudformation
-              .waitFor('stackDeleteComplete', {
-                StackName,
-              })
-              .promise(),
-            cloudformation
-              .deleteStack({
-                StackName,
-              })
-              .promise(),
+            waitUntilStackDeleteComplete(
+              { client: cloudformation, maxWaitTime: 3600 },
+              { StackName }
+            ),
+            cloudformation.send(new DeleteStackCommand({ StackName })),
           ])
         }
         throw new Error(
@@ -325,12 +346,12 @@ export default async function deployCloudFormationStack({
     process.stderr.write(`Stack ${StackName} is already in the desired state\n`)
   }
   if (StackPolicy && !ExistingStack) {
-    await cloudformation
-      .setStackPolicy({
+    await cloudformation.send(
+      new SetStackPolicyCommand({
         StackName,
         StackPolicyBody: JSON.stringify(StackPolicy, null, 2),
       })
-      .promise()
+    )
   }
   const Outputs = readOutputs
     ? await getStackOutputs({
