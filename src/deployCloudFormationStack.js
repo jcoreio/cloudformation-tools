@@ -185,14 +185,10 @@ export default async function deployCloudFormationStack({
       process.stderr.write(
         `Deleting existing ${StackStatus} stack: ${StackName}...\n`
       )
-      await watchDuring(() =>
-        Promise.all([
-          cloudformation
-            .waitFor('stackDeleteComplete', { StackName })
-            .promise(),
-          cloudformation.deleteStack({ StackName }).promise(),
-        ])
-      )
+      Promise.all([
+        cloudformation.waitFor('stackDeleteComplete', { StackName }).promise(),
+        cloudformation.deleteStack({ StackName }).promise(),
+      ])
     } else if (/_IN_PROGRESS$/.test(StackStatus)) {
       process.stderr.write(
         `Waiting for ${StackStatus.replace(/^(.*)_IN_PROGRESS$/, (m, a) =>
@@ -203,8 +199,11 @@ export default async function deployCloudFormationStack({
         cloudformation
           .waitFor(
             StackStatus.replace(
-              /^(.)(.*)_IN_PROGRESS$/,
-              (m, a, b) => `stack${a}${b.toLowerCase()}Complete`
+              /^(.+)_IN_PROGRESS$/,
+              (m, a) => {
+                if (a === 'REVIEW') a = 'CREATE'
+                return `stack${a.substring(0, 1)}${a.substring(1).toLowerCase()}Complete`
+              }
             )
           )
           .promise()
