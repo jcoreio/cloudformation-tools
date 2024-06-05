@@ -29,6 +29,9 @@ dependencies:
   '@babel/runtime':
     specifier: ^7.19.0
     version: 7.19.0
+  '@jcoreio/cloudformation-template-types':
+    specifier: ^1.3.1
+    version: 1.3.1
   '@types/node':
     specifier: ^18.7.22
     version: 18.7.22
@@ -2660,6 +2663,14 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /@jcoreio/cloudformation-template-types@1.3.1:
+    resolution: {integrity: sha512-0CmynApUcmruCtS0B/bgxXwV04PS7ydc87QUbCoBcdz4wbiLbxKThdF9toNXPWl7lGpwEIzO7BZzZNRLD9zzEA==}
+    engines: {node: '>=16'}
+    dependencies:
+      fs-extra: 11.2.0
+      zod: 3.23.8
+    dev: false
+
   /@jcoreio/eslint-plugin-implicit-dependencies@1.1.1:
     resolution: {integrity: sha512-Kg+erBdnA1sczSNNGEGIA9k7hwfnN1NrKEnACfJwbGoR6T5E/yhBbpyF5q5dEIvxHTUJ4wL5azEd3m68qq8F+Q==}
     engines: {node: '>=16'}
@@ -4631,6 +4642,15 @@ packages:
       graceful-fs: 4.2.10
       jsonfile: 6.1.0
       universalify: 2.0.0
+
+  /fs-extra@11.2.0:
+    resolution: {integrity: sha512-PmDi3uwK5nFuXh7XDTlVnS17xJS7vW36is2+w3xcv8SVxiB4NyATf4ctkVY5bkSjX0Y4nbvZCq1/EjtEyr9ktw==}
+    engines: {node: '>=14.14'}
+    dependencies:
+      graceful-fs: 4.2.10
+      jsonfile: 6.1.0
+      universalify: 2.0.0
+    dev: false
 
   /fs-readdir-recursive@1.1.0:
     resolution: {integrity: sha512-GNanXlVr2pf02+sPN40XN8HG+ePaNcvM0q5mZBd668Obwb0yD5GiUbZOFgwn8kGMY6I3mdyDJzieUy3PTYyTRA==}
@@ -6908,4 +6928,3 @@ packages:
 
   /zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-    dev: true

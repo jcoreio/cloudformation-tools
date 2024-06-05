@@ -1,6 +1,11 @@
 import { inspect } from 'util'
 import fs from 'fs-extra'
 import Deployer from './Deployer'
+import {
+  CloudFormationTemplate,
+  CloudFormationTemplateParameterValues,
+  CloudFormationTemplateOutputValues,
+} from '@jcoreio/cloudformation-template-types'
 import describeCloudFormationFailure from './describeCloudFormationFailure'
 import getStackOutputs from './getStackOutputs'
 import { Readable } from 'stream'
@@ -28,22 +33,20 @@ import {
 } from '@aws-sdk/client-cloudformation'
 import { S3Client } from '@aws-sdk/client-s3'
 
-export type DeployCloudFormationStackInput = {
+export type DeployCloudFormationStackInput<
+  Template extends CloudFormationTemplate = CloudFormationTemplate
+> = {
   cloudformation?: CloudFormationClient
   region?: string
   awsConfig?: CloudFormationClientConfig
   approve?: boolean
   StackName: string
-  Template?: any
+  Template?: Template
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
   BlanketDeletionPolicy?: 'Delete' | 'Retain'
   StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody']
-  Parameters?:
-    | {
-        [key: string]: Parameter['ParameterValue']
-      }
-    | Parameter[]
+  Parameters?: CloudFormationTemplateParameterValues<Template> | Parameter[]
   Capabilities?: Capability[]
   RoleARN?: string | undefined
   NotificationARNs?: Array<string> | undefined
@@ -63,16 +66,18 @@ export type DeployCloudFormationStackInput = {
   replaceIfCreateFailed?: boolean
 }
 
-export type DeployCloudFormationStackOutput = {
+export type DeployCloudFormationStackOutput<
+  Template extends CloudFormationTemplate = CloudFormationTemplate
+> = {
   ChangeSetName: string
   ChangeSetType: string
   HasChanges: boolean
-  Outputs: {
-    [resourceName: string]: string
-  }
+  Outputs: CloudFormationTemplateOutputValues<Template>
 }
 
-export default async function deployCloudFormationStack({
+export default async function deployCloudFormationStack<
+  Template extends CloudFormationTemplate = CloudFormationTemplate
+>({
   cloudformation: _cloudformation,
   region,
   awsConfig,
@@ -92,7 +97,9 @@ export default async function deployCloudFormationStack({
   readOutputs,
   replaceIfCreateFailed,
   logEvents = true,
-}: DeployCloudFormationStackInput): Promise<DeployCloudFormationStackOutput> {
+}: DeployCloudFormationStackInput<Template>): Promise<
+  DeployCloudFormationStackOutput<Template>
+> {
   if (!StackName) throw new Error('missing StackName')
   if (!awsConfig)
     awsConfig = {
@@ -104,15 +111,16 @@ export default async function deployCloudFormationStack({
     }
   const cloudformation = _cloudformation || new CloudFormationClient(awsConfig)
   const deployer = new Deployer(cloudformation)
-  const Parameters: Parameter[] | undefined =
-    _Parameters && !Array.isArray(_Parameters)
-      ? Object.entries(_Parameters)
-          .map(([key, value]) => ({
-            ParameterKey: key,
-            ParameterValue: value == null ? undefined : String(value),
-          }))
-          .filter((p) => p.ParameterValue != null)
-      : _Parameters
+  const Parameters: Parameter[] | undefined = Array.isArray(_Parameters)
+    ? _Parameters
+    : _Parameters
+    ? Object.entries(_Parameters as Record<string, Parameter>)
+        .map(([key, value]) => ({
+          ParameterKey: key,
+          ParameterValue: value == null ? undefined : String(value),
+        }))
+        .filter((p) => p.ParameterValue != null)
+    : undefined
   const Tags: Tag[] | undefined =
     _Tags && !Array.isArray(_Tags)
       ? Object.entries(_Tags)
@@ -379,6 +387,6 @@ export default async function deployCloudFormationStack({
     ChangeSetName,
     ChangeSetType,
     HasChanges,
-    Outputs,
+    Outputs: Outputs as any,
   }
 }
