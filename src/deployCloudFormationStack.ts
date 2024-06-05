@@ -45,7 +45,7 @@ export type DeployCloudFormationStackInput<
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
   BlanketDeletionPolicy?: 'Delete' | 'Retain'
-  StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody']
+  StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody'] | object
   Parameters?: CloudFormationTemplateParameterValues<Template> | Parameter[]
   Capabilities?: Capability[]
   RoleARN?: string | undefined
@@ -372,7 +372,10 @@ export default async function deployCloudFormationStack<
     await cloudformation.send(
       new SetStackPolicyCommand({
         StackName,
-        StackPolicyBody: JSON.stringify(StackPolicy, null, 2),
+        StackPolicyBody:
+          typeof StackPolicy === 'string'
+            ? StackPolicy
+            : JSON.stringify(StackPolicy, null, 2),
       })
     )
   }
