@@ -20,6 +20,7 @@ import {
 } from '@aws-sdk/client-cloudformation'
 import S3Uploader, { parseS3Url } from './S3Uploader'
 import { Readable } from 'stream'
+import { waitSettings } from './waitSettings'
 
 /**
  * Adapted from https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation/deployer.py
@@ -256,11 +257,11 @@ export default class Deployer {
     )
     await (ChangeSetType === 'CREATE'
       ? waitUntilStackCreateComplete(
-          { client: this._client, maxWaitTime: 3600 },
+          { client: this._client, ...waitSettings },
           { StackName }
         )
       : waitUntilStackUpdateComplete(
-          { client: this._client, maxWaitTime: 3600 },
+          { client: this._client, ...waitSettings },
           { StackName }
         ))
 

@@ -32,6 +32,7 @@ import {
   waitUntilStackUpdateComplete,
 } from '@aws-sdk/client-cloudformation'
 import { S3Client } from '@aws-sdk/client-s3'
+import { waitSettings } from './waitSettings'
 
 export type DeployCloudFormationStackInput<
   Template extends CloudFormationTemplate = CloudFormationTemplate
@@ -229,8 +230,13 @@ export default async function deployCloudFormationStack<
       )
       Promise.all([
         waitUntilStackDeleteComplete(
-          { client: cloudformation, maxWaitTime: 3600 },
-          { StackName }
+          {
+            client: cloudformation,
+            ...waitSettings,
+          },
+          {
+            StackName,
+          }
         ),
         cloudformation.send(
           new DeleteStackCommand({
@@ -248,8 +254,13 @@ export default async function deployCloudFormationStack<
             `Waiting for create to complete on existing stack ${StackName}...\n`
           )
           await waitUntilStackCreateComplete(
-            { client: cloudformation, maxWaitTime: 3600 },
-            { StackName }
+            {
+              client: cloudformation,
+              ...waitSettings,
+            },
+            {
+              StackName,
+            }
           )
           break
         case 'ROLLBACK_IN_PROGRESS':
@@ -259,8 +270,13 @@ export default async function deployCloudFormationStack<
             `Waiting for rollback to complete on existing stack ${StackName}...\n`
           )
           await waitUntilStackRollbackComplete(
-            { client: cloudformation, maxWaitTime: 3600 },
-            { StackName }
+            {
+              client: cloudformation,
+              ...waitSettings,
+            },
+            {
+              StackName,
+            }
           )
           break
         case 'UPDATE_IN_PROGRESS':
@@ -269,8 +285,13 @@ export default async function deployCloudFormationStack<
             `Waiting for update to complete on existing stack ${StackName}...\n`
           )
           await waitUntilStackUpdateComplete(
-            { client: cloudformation, maxWaitTime: 3600 },
-            { StackName }
+            {
+              client: cloudformation,
+              ...waitSettings,
+            },
+            {
+              StackName,
+            }
           )
           break
         case 'DELETE_IN_PROGRESS':
@@ -278,8 +299,13 @@ export default async function deployCloudFormationStack<
             `Waiting for delete to complete on existing stack ${StackName}...\n`
           )
           await waitUntilStackDeleteComplete(
-            { client: cloudformation, maxWaitTime: 3600 },
-            { StackName }
+            {
+              client: cloudformation,
+              ...waitSettings,
+            },
+            {
+              StackName,
+            }
           )
           break
         case 'IMPORT_IN_PROGRESS':
@@ -288,8 +314,13 @@ export default async function deployCloudFormationStack<
             `Waiting for import to complete on existing stack ${StackName}...\n`
           )
           await waitUntilStackImportComplete(
-            { client: cloudformation, maxWaitTime: 3600 },
-            { StackName }
+            {
+              client: cloudformation,
+              ...waitSettings,
+            },
+            {
+              StackName,
+            }
           )
           break
       }
@@ -344,10 +375,19 @@ export default async function deployCloudFormationStack<
           process.stderr.write(`Deleting aborted stack ${StackName}...\n`)
           await Promise.all([
             waitUntilStackDeleteComplete(
-              { client: cloudformation, maxWaitTime: 3600 },
-              { StackName }
+              {
+                client: cloudformation,
+                ...waitSettings,
+              },
+              {
+                StackName,
+              }
             ),
-            cloudformation.send(new DeleteStackCommand({ StackName })),
+            cloudformation.send(
+              new DeleteStackCommand({
+                StackName,
+              })
+            ),
           ])
         }
         throw new Error(
