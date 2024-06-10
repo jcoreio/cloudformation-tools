@@ -228,7 +228,7 @@ export default async function deployCloudFormationStack<
       process.stderr.write(
         `Deleting existing ${StackStatus} stack: ${StackName}...\n`
       )
-      Promise.all([
+      await Promise.all([
         waitUntilStackDeleteComplete(
           {
             client: cloudformation,
