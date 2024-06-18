@@ -41,6 +41,7 @@ export type DeployCloudFormationStackInput<
   region?: string
   awsConfig?: CloudFormationClientConfig
   approve?: boolean
+  ImportExistingResources?: boolean
   StackName: string
   Template?: Template
   TemplateFile?: string
@@ -82,6 +83,7 @@ export default async function deployCloudFormationStack<
   cloudformation: _cloudformation,
   region,
   awsConfig,
+  ImportExistingResources,
   approve,
   StackName,
   Template,
@@ -329,6 +331,7 @@ export default async function deployCloudFormationStack<
   const { ChangeSetName, ChangeSetType, HasChanges } =
     await deployer.createAndWaitForChangeSet({
       StackName,
+      ImportExistingResources,
       TemplateBody,
       Parameters,
       Capabilities,

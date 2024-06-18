@@ -61,6 +61,7 @@ export default class Deployer {
   async createChangeSet({
     StackName,
     TemplateBody,
+    ImportExistingResources,
     Parameters,
     Capabilities,
     RoleARN,
@@ -70,6 +71,7 @@ export default class Deployer {
   }: {
     StackName: string
     TemplateBody: string | Buffer | (() => Readable)
+    ImportExistingResources?: boolean
     Parameters?: Parameter[]
     Capabilities?: Capability[]
     RoleARN?: string
@@ -110,6 +112,7 @@ export default class Deployer {
       TemplateURL?: string
       TemplateBody?: string
       ChangeSetType: ChangeSetType
+      ImportExistingResources?: boolean
       Parameters?: Parameter[]
       Capabilities?: Capability[]
       Description: string
@@ -118,6 +121,7 @@ export default class Deployer {
       ChangeSetName,
       StackName,
       ChangeSetType,
+      ImportExistingResources,
       Parameters,
       Capabilities,
       Description,
@@ -271,6 +275,7 @@ export default class Deployer {
   async createAndWaitForChangeSet({
     StackName,
     TemplateBody,
+    ImportExistingResources,
     Parameters,
     Capabilities,
     RoleARN,
@@ -280,6 +285,7 @@ export default class Deployer {
   }: {
     StackName: string
     TemplateBody: string | Buffer | (() => Readable)
+    ImportExistingResources?: boolean
     Parameters?: Parameter[]
     Capabilities?: Capability[]
     RoleARN?: string
@@ -290,6 +296,7 @@ export default class Deployer {
     const { ChangeSetName, ChangeSetType } = await this.createChangeSet({
       StackName,
       TemplateBody,
+      ImportExistingResources,
       Parameters,
       Capabilities,
       RoleARN,
