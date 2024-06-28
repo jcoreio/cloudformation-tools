@@ -46,6 +46,7 @@ export type DeployCloudFormationStackInput<
   Template?: Template
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
+  UsePreviousTemplate?: boolean
   BlanketDeletionPolicy?: 'Delete' | 'Retain'
   StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody'] | object
   Parameters?: CloudFormationTemplateParameterValues<Template> | Parameter[]
@@ -89,6 +90,7 @@ export default async function deployCloudFormationStack<
   Template,
   TemplateFile,
   TemplateBody,
+  UsePreviousTemplate,
   BlanketDeletionPolicy,
   StackPolicy,
   Parameters: _Parameters,
@@ -144,6 +146,17 @@ export default async function deployCloudFormationStack<
       `BlankDeletionPolicy can only be used together with Template.`
     )
   }
+  if (
+    (TemplateBody != null ? 1 : 0) +
+      (Template != null ? 1 : 0) +
+      (TemplateFile != null ? 1 : 0) +
+      (UsePreviousTemplate ? 1 : 0) >
+    1
+  ) {
+    throw new Error(
+      `Passing two of the following at the same time is not allowed: Template, TemplateFile, TemplateBody, or UsePreviousTemplate`
+    )
+  }
   if (!TemplateBody) {
     if (Template) {
       if (BlanketDeletionPolicy) {
@@ -156,8 +169,10 @@ export default async function deployCloudFormationStack<
       TemplateBody = s3Uploader
         ? () => fs.createReadStream(TemplateFile, 'utf8')
         : await fs.readFile(TemplateFile, 'utf8')
-    } else {
-      throw new Error(`Template, TemplateFile or TemplateBody is required`)
+    } else if (!UsePreviousTemplate) {
+      throw new Error(
+        `Template, TemplateFile, TemplateBody, or UsePreviousTemplate is required`
+      )
     }
   }
   async function watchDuring<R>(procedure: () => Promise<R>): Promise<R> {
@@ -333,6 +348,7 @@ export default async function deployCloudFormationStack<
       StackName,
       ImportExistingResources,
       TemplateBody,
+      UsePreviousTemplate,
       Parameters,
       Capabilities,
       RoleARN,

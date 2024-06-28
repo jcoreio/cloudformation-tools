@@ -61,6 +61,7 @@ export default class Deployer {
   async createChangeSet({
     StackName,
     TemplateBody,
+    UsePreviousTemplate,
     ImportExistingResources,
     Parameters,
     Capabilities,
@@ -70,7 +71,8 @@ export default class Deployer {
     Tags,
   }: {
     StackName: string
-    TemplateBody: string | Buffer | (() => Readable)
+    TemplateBody?: string | Buffer | (() => Readable)
+    UsePreviousTemplate?: boolean
     ImportExistingResources?: boolean
     Parameters?: Parameter[]
     Capabilities?: Capability[]
@@ -111,6 +113,7 @@ export default class Deployer {
       NotificationARNs?: string[]
       TemplateURL?: string
       TemplateBody?: string
+      UsePreviousTemplate?: boolean
       ChangeSetType: ChangeSetType
       ImportExistingResources?: boolean
       Parameters?: Parameter[]
@@ -128,9 +131,15 @@ export default class Deployer {
       Tags,
     }
 
+    if (TemplateBody && UsePreviousTemplate) {
+      throw new Error(
+        `Passing both TemplateBody and UsePreviousTemplate is not allowed`
+      )
+    }
+
     // If an S3 uploader is available, use TemplateURL to deploy rather than
     // TemplateBody. This is required for large templates.
-    if (s3Uploader) {
+    if (s3Uploader && TemplateBody) {
       const url = await s3Uploader.uploadWithDedup({
         Body: TemplateBody,
         extension: 'template',
@@ -141,8 +150,12 @@ export default class Deployer {
       throw new Error(
         'TemplateBody: () => stream.Readable is not supported without s3Uploader option'
       )
-    } else {
+    } else if (TemplateBody) {
       params.TemplateBody = TemplateBody.toString()
+    } else if (UsePreviousTemplate) {
+      params.UsePreviousTemplate = true
+    } else {
+      throw new Error(`Must provide TemplateBody or UsePrevioiusTemplate`)
     }
     if (RoleARN) params.RoleARN = RoleARN
     if (NotificationARNs) params.NotificationARNs = NotificationARNs
@@ -275,6 +288,7 @@ export default class Deployer {
   async createAndWaitForChangeSet({
     StackName,
     TemplateBody,
+    UsePreviousTemplate,
     ImportExistingResources,
     Parameters,
     Capabilities,
@@ -284,7 +298,8 @@ export default class Deployer {
     Tags,
   }: {
     StackName: string
-    TemplateBody: string | Buffer | (() => Readable)
+    TemplateBody?: string | Buffer | (() => Readable)
+    UsePreviousTemplate?: boolean
     ImportExistingResources?: boolean
     Parameters?: Parameter[]
     Capabilities?: Capability[]
@@ -296,6 +311,7 @@ export default class Deployer {
     const { ChangeSetName, ChangeSetType } = await this.createChangeSet({
       StackName,
       TemplateBody,
+      UsePreviousTemplate,
       ImportExistingResources,
       Parameters,
       Capabilities,
