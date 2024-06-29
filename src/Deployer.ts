@@ -3,18 +3,16 @@
  */
 
 import {
-  Capability,
   ChangeSetType,
   CloudFormationClient,
   CreateChangeSetCommand,
+  CreateChangeSetInput,
   DeleteChangeSetCommand,
   DescribeChangeSetCommand,
   DescribeStacksCommand,
   ExecuteChangeSetCommand,
   GetTemplateSummaryCommand,
   ListChangeSetsCommand,
-  Parameter,
-  Tag,
   waitUntilStackCreateComplete,
   waitUntilStackUpdateComplete,
 } from '@aws-sdk/client-cloudformation'
@@ -60,40 +58,31 @@ export default class Deployer {
 
   async createChangeSet({
     StackName,
+    ChangeSetName = `${this.changesetPrefix}${Date.now()}`,
+    Description = `Created at ${new Date().toISOString()} UTC`,
+    ChangeSetType,
     TemplateBody,
     UsePreviousTemplate,
-    ImportExistingResources,
     Parameters,
-    Capabilities,
-    RoleARN,
-    NotificationARNs,
     s3Uploader,
-    Tags,
-  }: {
+    ...rest
+  }: Omit<
+    CreateChangeSetInput,
+    'TemplateBody' | 'TemplateURL' | 'StackName'
+  > & {
     StackName: string
     TemplateBody?: string | Buffer | (() => Readable)
-    UsePreviousTemplate?: boolean
-    ImportExistingResources?: boolean
-    Parameters?: Parameter[]
-    Capabilities?: Capability[]
-    RoleARN?: string
-    NotificationARNs?: string[]
     s3Uploader?: S3Uploader
-    Tags?: Tag[]
   }) {
-    const Description = `Created at ${new Date().toISOString()} UTC`
-    const ChangeSetName = `${this.changesetPrefix}${Date.now()}`
-
-    let ChangeSetType: ChangeSetType
     if (!(await this.hasStack(StackName))) {
-      ChangeSetType = 'CREATE'
+      if (!ChangeSetType) ChangeSetType = 'CREATE'
 
       // When creating a new stack, UsePreviousValue: true is invalid.
       // For such parameters, users should either override with new value,
       // or set a Default value in template to successfully create a stack.
       Parameters = Parameters?.filter((p) => !p.UsePreviousValue)
     } else {
-      ChangeSetType = 'UPDATE'
+      if (!ChangeSetType) ChangeSetType = 'UPDATE'
       const summary = await this._client.send(
         new GetTemplateSummaryCommand({ StackName })
       )
@@ -106,29 +95,14 @@ export default class Deployer {
       )
     }
 
-    const params: {
-      ChangeSetName: string
-      StackName: string
-      RoleARN?: string
-      NotificationARNs?: string[]
-      TemplateURL?: string
-      TemplateBody?: string
-      UsePreviousTemplate?: boolean
-      ChangeSetType: ChangeSetType
-      ImportExistingResources?: boolean
-      Parameters?: Parameter[]
-      Capabilities?: Capability[]
-      Description: string
-      Tags?: Tag[]
-    } = {
-      ChangeSetName,
+    const params: CreateChangeSetInput = {
       StackName,
+      ChangeSetName,
       ChangeSetType,
-      ImportExistingResources,
-      Parameters,
-      Capabilities,
       Description,
-      Tags,
+      UsePreviousTemplate,
+      Parameters,
+      ...rest,
     }
 
     if (TemplateBody && UsePreviousTemplate) {
@@ -157,9 +131,6 @@ export default class Deployer {
     } else {
       throw new Error(`Must provide TemplateBody or UsePrevioiusTemplate`)
     }
-    if (RoleARN) params.RoleARN = RoleARN
-    if (NotificationARNs) params.NotificationARNs = NotificationARNs
-
     const { Id } = await this._client.send(new CreateChangeSetCommand(params))
     return { ChangeSetName: Id, ChangeSetType }
   }
@@ -285,41 +256,11 @@ export default class Deployer {
     process.stderr.write(`Successfully created/updated stack - ${StackName}\n`)
   }
 
-  async createAndWaitForChangeSet({
-    StackName,
-    TemplateBody,
-    UsePreviousTemplate,
-    ImportExistingResources,
-    Parameters,
-    Capabilities,
-    RoleARN,
-    NotificationARNs,
-    s3Uploader,
-    Tags,
-  }: {
-    StackName: string
-    TemplateBody?: string | Buffer | (() => Readable)
-    UsePreviousTemplate?: boolean
-    ImportExistingResources?: boolean
-    Parameters?: Parameter[]
-    Capabilities?: Capability[]
-    RoleARN?: string
-    NotificationARNs?: string[]
-    s3Uploader?: S3Uploader
-    Tags?: Tag[]
-  }) {
-    const { ChangeSetName, ChangeSetType } = await this.createChangeSet({
-      StackName,
-      TemplateBody,
-      UsePreviousTemplate,
-      ImportExistingResources,
-      Parameters,
-      Capabilities,
-      RoleARN,
-      NotificationARNs,
-      s3Uploader,
-      Tags,
-    })
+  async createAndWaitForChangeSet(
+    options: Parameters<Deployer['createChangeSet']>[0]
+  ) {
+    const { StackName } = options
+    const { ChangeSetName, ChangeSetType } = await this.createChangeSet(options)
     if (!ChangeSetName) {
       throw new Error(
         `unexpected: createChangeSet response is missing ChangeSetName`

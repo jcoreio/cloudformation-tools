@@ -15,9 +15,9 @@ import { Writable } from 'stream'
 import watchStackEvents from './watchStackEvents'
 import printStackEvents from './printStackEvents'
 import {
-  Capability,
   CloudFormationClient,
   CloudFormationClientConfig,
+  CreateChangeSetInput,
   DeleteChangeSetCommand,
   DeleteStackCommand,
   DescribeStacksCommand,
@@ -36,7 +36,10 @@ import { waitSettings } from './waitSettings'
 
 export type DeployCloudFormationStackInput<
   Template extends CloudFormationTemplate = CloudFormationTemplate
-> = {
+> = Omit<
+  CreateChangeSetInput,
+  'TemplateBody' | 'TemplateURL' | 'StackName' | 'Parameters' | 'Tags'
+> & {
   cloudformation?: CloudFormationClient
   region?: string
   awsConfig?: CloudFormationClientConfig
@@ -46,13 +49,9 @@ export type DeployCloudFormationStackInput<
   Template?: Template
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
-  UsePreviousTemplate?: boolean
   BlanketDeletionPolicy?: 'Delete' | 'Retain'
   StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody'] | object
   Parameters?: CloudFormationTemplateParameterValues<Template> | Parameter[]
-  Capabilities?: Capability[]
-  RoleARN?: string | undefined
-  NotificationARNs?: Array<string> | undefined
   Tags?:
     | {
         [key: string]: Tag['Value']
@@ -84,7 +83,6 @@ export default async function deployCloudFormationStack<
   cloudformation: _cloudformation,
   region,
   awsConfig,
-  ImportExistingResources,
   approve,
   StackName,
   Template,
@@ -94,14 +92,12 @@ export default async function deployCloudFormationStack<
   BlanketDeletionPolicy,
   StackPolicy,
   Parameters: _Parameters,
-  Capabilities,
-  RoleARN,
-  NotificationARNs,
   Tags: _Tags,
   s3,
   readOutputs,
   replaceIfCreateFailed,
   logEvents = true,
+  ...rest
 }: DeployCloudFormationStackInput<Template>): Promise<
   DeployCloudFormationStackOutput<Template>
 > {
@@ -346,15 +342,12 @@ export default async function deployCloudFormationStack<
   const { ChangeSetName, ChangeSetType, HasChanges } =
     await deployer.createAndWaitForChangeSet({
       StackName,
-      ImportExistingResources,
       TemplateBody,
       UsePreviousTemplate,
       Parameters,
-      Capabilities,
-      RoleARN,
-      NotificationARNs,
       Tags,
       s3Uploader,
+      ...rest,
     })
   if (HasChanges) {
     if (approve) {
