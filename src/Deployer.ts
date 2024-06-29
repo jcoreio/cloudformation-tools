@@ -68,9 +68,10 @@ export default class Deployer {
     ...rest
   }: Omit<
     CreateChangeSetInput,
-    'TemplateBody' | 'TemplateURL' | 'StackName'
+    'ChangeSetName' | 'TemplateBody' | 'TemplateURL' | 'StackName'
   > & {
     StackName: string
+    ChangeSetName?: string
     TemplateBody?: string | Buffer | (() => Readable)
     s3Uploader?: S3Uploader
   }) {

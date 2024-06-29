@@ -38,7 +38,12 @@ export type DeployCloudFormationStackInput<
   Template extends CloudFormationTemplate = CloudFormationTemplate
 > = Omit<
   CreateChangeSetInput,
-  'TemplateBody' | 'TemplateURL' | 'StackName' | 'Parameters' | 'Tags'
+  | 'ChangeSetName'
+  | 'TemplateBody'
+  | 'TemplateURL'
+  | 'StackName'
+  | 'Parameters'
+  | 'Tags'
 > & {
   cloudformation?: CloudFormationClient
   region?: string
@@ -46,6 +51,7 @@ export type DeployCloudFormationStackInput<
   approve?: boolean
   ImportExistingResources?: boolean
   StackName: string
+  ChangeSetName?: string
   Template?: Template
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
