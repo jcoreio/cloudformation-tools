@@ -247,22 +247,20 @@ export default async function deployCloudFormationStack<
       process.stderr.write(
         `Deleting existing ${StackStatus} stack: ${StackName}...\n`
       )
-      await Promise.all([
-        waitUntilStackDeleteComplete(
-          {
-            client: cloudformation,
-            ...waitSettings,
-          },
-          {
-            StackName,
-          }
-        ),
-        cloudformation.send(
-          new DeleteStackCommand({
-            StackName,
-          })
-        ),
-      ])
+      await cloudformation.send(
+        new DeleteStackCommand({
+          StackName,
+        })
+      )
+      await waitUntilStackDeleteComplete(
+        {
+          client: cloudformation,
+          ...waitSettings,
+        },
+        {
+          StackName,
+        }
+      )
     } else if (
       /_IN_PROGRESS$/.test(StackStatus || '') &&
       StackStatus !== 'REVIEW_IN_PROGRESS'
