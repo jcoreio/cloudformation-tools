@@ -219,7 +219,11 @@ export default async function deployCloudFormationStack<
       'ROLLBACK_COMPLETE',
       'ROLLBACK_IN_PROGRESS',
     ].includes(StackStatus || '')
-    if (StackPolicy && !createFailed) {
+    if (
+      StackPolicy &&
+      !createFailed &&
+      !StackStatus?.endsWith('_IN_PROGRESS')
+    ) {
       process.stderr.write(`Setting policy on stack ${StackName}...\n`)
       await cloudformation.send(
         new SetStackPolicyCommand({
@@ -424,7 +428,7 @@ export default async function deployCloudFormationStack<
   } else {
     process.stderr.write(`Stack ${StackName} is already in the desired state\n`)
   }
-  if (StackPolicy && !ExistingStack) {
+  if (StackPolicy) {
     await cloudformation.send(
       new SetStackPolicyCommand({
         StackName,
