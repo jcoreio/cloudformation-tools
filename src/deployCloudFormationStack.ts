@@ -228,7 +228,10 @@ export default async function deployCloudFormationStack<
       await cloudformation.send(
         new SetStackPolicyCommand({
           StackName,
-          StackPolicyBody: JSON.stringify(StackPolicy, null, 2),
+          StackPolicyBody:
+            typeof StackPolicy === 'string'
+              ? StackPolicy
+              : JSON.stringify(StackPolicy, null, 2),
         })
       )
     }
