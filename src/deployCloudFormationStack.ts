@@ -432,6 +432,7 @@ export default async function deployCloudFormationStack<
     process.stderr.write(`Stack ${StackName} is already in the desired state\n`)
   }
   if (StackPolicy) {
+    process.stderr.write(`Setting policy on stack ${StackName}...\n`)
     await cloudformation.send(
       new SetStackPolicyCommand({
         StackName,
