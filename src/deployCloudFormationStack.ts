@@ -72,6 +72,7 @@ export type DeployCloudFormationStackInput<
   logEvents?: Writable | boolean
   readOutputs?: boolean
   replaceIfCreateFailed?: boolean
+  replaceIfDeleteFailed?: boolean
 }
 
 export type DeployCloudFormationStackOutput<
@@ -102,6 +103,7 @@ export default async function deployCloudFormationStack<
   s3,
   readOutputs,
   replaceIfCreateFailed,
+  replaceIfDeleteFailed,
   logEvents = true,
   ...rest
 }: DeployCloudFormationStackInput<Template>): Promise<
@@ -235,7 +237,10 @@ export default async function deployCloudFormationStack<
         })
       )
     }
-    if (createFailed && replaceIfCreateFailed) {
+    if (
+      (createFailed && replaceIfCreateFailed) ||
+      (StackStatus === 'DELETE_FAILED' && replaceIfDeleteFailed)
+    ) {
       if (approve) {
         const { approved } = await inquirer.prompt([
           {
