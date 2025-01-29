@@ -12,10 +12,10 @@ import {
   DescribeStacksCommand,
   ExecuteChangeSetCommand,
   GetTemplateSummaryCommand,
-  ListChangeSetsCommand,
   waitUntilStackCreateComplete,
   waitUntilStackUpdateComplete,
 } from '@aws-sdk/client-cloudformation'
+import { checkExceptions, createWaiter, WaiterState } from '@smithy/util-waiter'
 import S3Uploader, { parseS3Url } from './S3Uploader'
 import { Readable } from 'stream'
 import { waitSettings } from './waitSettings'
@@ -159,63 +159,59 @@ export default class Deployer {
     process.stderr.write(
       `Waiting for changeset to be created - ${StackName}...\n`
     )
-    let retriesRemaining = 20
-    let done = false
+
     let HasChanges = true
-    do {
-      if (--retriesRemaining <= 0)
-        throw Error(
-          `timed out waiting for changeset to be created - ${StackName}`
-        )
 
-      const { Summaries } = await this._client.send(
-        new ListChangeSetsCommand({
-          StackName,
-        })
-      )
-
-      const thisChangeSetInfo = Summaries?.find(
-        (row) => ChangeSetName === row.ChangeSetId
-      )
-      if (thisChangeSetInfo) {
-        const { Status, StatusReason } = thisChangeSetInfo
-        switch (Status) {
-          case 'CREATE_COMPLETE':
-            done = true
-            break
-          case 'CREATE_PENDING':
-          case 'CREATE_IN_PROGRESS':
-            break
-          case 'DELETE_COMPLETE':
-            throw Error(
-              `unexpected DELETE_COMPLETE status for ChangeSet ${ChangeSetName}`
-            )
-          case 'FAILED':
-            {
-              const statusLower = (StatusReason || '').toLowerCase()
+    const result = await createWaiter(
+      {
+        ...waitSettings,
+        minDelay: 2000,
+        maxDelay: 10000,
+        client: this._client,
+      },
+      { ChangeSetName, StackName },
+      async (client, input) => {
+        let reason
+        try {
+          const result = await client.send(new DescribeChangeSetCommand(input))
+          reason = result
+          switch (result.Status) {
+            case 'CREATE_COMPLETE':
+              return { state: WaiterState.SUCCESS, reason }
+            case 'DELETE_PENDING':
+            case 'DELETE_IN_PROGRESS':
+            case 'DELETE_FAILED':
+            case 'DELETE_COMPLETE':
+            case 'FAILED': {
+              const statusLower = (result.StatusReason || '').toLowerCase()
               if (
                 statusLower.startsWith('no updates are to be performed') ||
                 statusLower.startsWith(
                   "the submitted information didn't contain changes"
                 )
               ) {
-                done = true
                 HasChanges = false
+                return { state: WaiterState.SUCCESS, reason }
               } else {
-                throw Error(
-                  `ChangeSet ${ChangeSetName} failed to create: ${StatusReason}`
-                )
+                return { state: WaiterState.FAILURE, reason }
               }
             }
-            break
-          default:
-            throw Error(`unexpected ChangeSet Status: ${Status}`)
+          }
+        } catch (exception) {
+          reason = exception
+          if (
+            exception instanceof Object &&
+            'name' in exception &&
+            exception.name == 'ValidationError'
+          ) {
+            return { state: WaiterState.FAILURE, reason }
+          }
         }
+        return { state: WaiterState.RETRY, reason }
       }
-      if (!done) {
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-      }
-    } while (!done)
+    )
+    checkExceptions(result)
+
     return { HasChanges }
   }
 
