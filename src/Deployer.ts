@@ -11,6 +11,7 @@ import {
   DescribeChangeSetCommand,
   DescribeStacksCommand,
   ExecuteChangeSetCommand,
+  ExecuteChangeSetCommandInput,
   GetTemplateSummaryCommand,
   waitUntilStackCreateComplete,
   waitUntilStackUpdateComplete,
@@ -215,19 +216,8 @@ export default class Deployer {
     return { HasChanges }
   }
 
-  async executeChangeSet({
-    ChangeSetName,
-    StackName,
-  }: {
-    ChangeSetName: string
-    StackName: string
-  }) {
-    return await this._client.send(
-      new ExecuteChangeSetCommand({
-        ChangeSetName,
-        StackName,
-      })
-    )
+  async executeChangeSet(options: ExecuteChangeSetCommandInput) {
+    return await this._client.send(new ExecuteChangeSetCommand(options))
   }
 
   async waitForExecute({

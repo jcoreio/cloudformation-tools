@@ -57,6 +57,8 @@ export type DeployCloudFormationStackInput<
   TemplateBody?: string | Buffer | (() => Readable)
   BlanketDeletionPolicy?: 'Delete' | 'Retain'
   StackPolicy?: SetStackPolicyCommandInput['StackPolicyBody'] | object
+  DisableRollback?: boolean
+  RetainExceptOnCreate?: boolean
   Parameters?: CloudFormationTemplateParameterValues<Template> | Parameter[]
   Tags?:
     | {
@@ -98,6 +100,8 @@ export default async function deployCloudFormationStack<
   UsePreviousTemplate,
   BlanketDeletionPolicy,
   StackPolicy,
+  DisableRollback,
+  RetainExceptOnCreate,
   Parameters: _Parameters,
   Tags: _Tags,
   s3,
@@ -142,6 +146,7 @@ export default async function deployCloudFormationStack<
   const s3Uploader = s3
     ? new S3Uploader({
         ...s3,
+        // @ts-expect-error extension types don't match
         s3: new S3Client(awsConfig),
       })
     : undefined
@@ -366,17 +371,18 @@ export default async function deployCloudFormationStack<
       ...rest,
     })
   if (HasChanges) {
+    const changes = await deployer.describeChangeSet({
+      ChangeSetName,
+      StackName,
+    })
+    process.stderr.write(
+      `Changes to stack ${StackName}:\n${inspect(changes, {
+        colors: true,
+        depth: 5,
+      })}\n`
+    )
+
     if (approve) {
-      const changes = await deployer.describeChangeSet({
-        ChangeSetName,
-        StackName,
-      })
-      process.stderr.write(
-        `Changes to stack ${StackName}:\n${inspect(changes, {
-          colors: true,
-          depth: 5,
-        })}\n`
-      )
       const { approved } = await inquirer.prompt([
         {
           type: 'confirm',
@@ -427,6 +433,8 @@ export default async function deployCloudFormationStack<
       await deployer.executeChangeSet({
         ChangeSetName,
         StackName,
+        DisableRollback,
+        RetainExceptOnCreate,
       })
       await deployer.waitForExecute({
         StackName,
