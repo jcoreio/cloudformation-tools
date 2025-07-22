@@ -166,8 +166,8 @@ export default class Deployer {
     const result = await createWaiter(
       {
         ...waitSettings,
-        minDelay: 2000,
-        maxDelay: 10000,
+        minDelay: 2,
+        maxDelay: 10,
         client: this._client,
       },
       { ChangeSetName, StackName },
