@@ -223,20 +223,22 @@ export default class Deployer {
   async waitForExecute({
     StackName,
     ChangeSetType,
+    abortSignal,
   }: {
     StackName: string
     ChangeSetType: ChangeSetType
+    abortSignal?: AbortSignal
   }): Promise<void> {
     process.stderr.write(
       `Waiting for stack create/update to complete - ${StackName}...\n`
     )
     await (ChangeSetType === 'CREATE' ?
       waitUntilStackCreateComplete(
-        { client: this._client, ...waitSettings },
+        { client: this._client, abortSignal, ...waitSettings },
         { StackName }
       )
     : waitUntilStackUpdateComplete(
-        { client: this._client, ...waitSettings },
+        { client: this._client, abortSignal, ...waitSettings },
         { StackName }
       ))
 

@@ -189,10 +189,12 @@ export default async function deployCloudFormationStack<
       )
     }
   }
-  async function watchDuring<R>(procedure: () => Promise<R>): Promise<R> {
+  async function watchDuring<R>(
+    procedure: (watchEventsPromise: Promise<void>) => Promise<R>
+  ): Promise<R> {
     const ac = new AbortController()
     try {
-      printStackEvents({
+      const watchEventsPromise = printStackEvents({
         printHeader: true,
         out: typeof logEvents === 'boolean' ? process.stderr : logEvents,
         events: watchStackEvents({
@@ -201,8 +203,9 @@ export default async function deployCloudFormationStack<
           signal: ac.signal,
           since: Date.now(),
         }),
-      }).catch(() => {})
-      return await procedure()
+      })
+      watchEventsPromise.catch(() => {})
+      return await procedure(watchEventsPromise)
     } catch (error: any) {
       ac.abort()
       await describeCloudFormationFailure({
@@ -437,17 +440,43 @@ export default async function deployCloudFormationStack<
         )
       }
     }
-    await watchDuring(async () => {
+    await watchDuring(async (watchEventsPromise) => {
       await deployer.executeChangeSet({
         ChangeSetName,
         StackName,
         DisableRollback,
         RetainExceptOnCreate,
       })
-      await deployer.waitForExecute({
-        StackName,
-        ChangeSetType,
-      })
+      const ac = new AbortController()
+      await Promise.race([
+        deployer
+          .waitForExecute({
+            StackName,
+            ChangeSetType,
+            abortSignal: ac.signal,
+          })
+          .catch((error: unknown) => {
+            if (
+              error instanceof Object &&
+              'name' in error &&
+              error.name === 'AbortSignal'
+            ) {
+              // waitForExecute won't print this if it we early aborted it because we got a
+              // stack CREATE_COMPLETE/UPDATE_COMPLETE event
+              process.stderr.write(
+                `Successfully created/updated stack - ${StackName}\n`
+              )
+              return
+            }
+            throw error
+          }),
+        // we can often get a stack CREATE_COMPLETE/UPDATE_COMPLETE event before
+        // waitUntilStackCreateComplete/watiUntilStackUpdateComplete gets around to polling again,
+        // so abort polling if that happens
+        watchEventsPromise.then(() => {
+          ac.abort()
+        }),
+      ])
     })
   } else {
     process.stderr.write(`Stack ${StackName} is already in the desired state\n`)

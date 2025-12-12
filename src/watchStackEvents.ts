@@ -27,6 +27,7 @@ export default async function* watchStackEvents({
   pollDelay?: number
   signal?: AbortSignal
 }): AsyncIterableIterator<StackEvent> {
+  const initSince = since ? +since : Date.now()
   do {
     let events: StackEvent[] = []
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -37,6 +38,7 @@ export default async function* watchStackEvents({
           cloudformation,
           StackName,
           since,
+          signal,
         })) {
           events.push(event)
         }
@@ -62,7 +64,9 @@ export default async function* watchStackEvents({
       // Watch until we reach a complete/failed event for the stack
       if (
         isRootStackEvent(event) &&
-        !event.ResourceStatus?.includes('IN_PROGRESS')
+        !event.ResourceStatus?.includes('IN_PROGRESS') &&
+        event.Timestamp &&
+        event.Timestamp.getTime() > initSince
       ) {
         return
       }
