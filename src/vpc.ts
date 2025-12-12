@@ -2,6 +2,7 @@ import {
   DescribeVpcsCommand,
   EC2Client,
   EC2ClientConfig,
+  Vpc,
 } from '@aws-sdk/client-ec2'
 import { getSubnetInfo } from './subnet'
 export async function getVPCIdBySubnetId({
@@ -40,11 +41,11 @@ export async function getCIDRByVPCId({
   if (!vpcId) throw Error('vpcId is required')
   if (!awsConfig)
     awsConfig = {
-      ...(region
-        ? {
-            region,
-          }
-        : {}),
+      ...(region ?
+        {
+          region,
+        }
+      : {}),
     }
   if (!ec2) ec2 = new EC2Client(awsConfig)
   const { Vpcs } = await ec2.send(
@@ -53,7 +54,7 @@ export async function getCIDRByVPCId({
     })
   )
   if (!Vpcs) throw Error('missing Vpcs in result')
-  const [vpc] = Vpcs
+  const vpc = Vpcs[0] as Vpc | undefined
   if (!vpc)
     throw Error(
       `could not look up CIDR for VPC ${vpcId}: missing VPC in result`

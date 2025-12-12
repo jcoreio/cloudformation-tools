@@ -34,7 +34,7 @@ export async function upsertIAMInstanceProfile({
   const { InstanceProfileName } = rest
   const result = await iam
     .send(new CreateInstanceProfileCommand({ ...rest }))
-    .catch(async (error) => {
+    .catch(async (error: unknown) => {
       if (
         !(
           error instanceof Error &&
@@ -76,7 +76,7 @@ export async function upsertIAMInstanceProfile({
             RoleName,
           })
         )
-        .catch((error) => {
+        .catch((error: unknown) => {
           if (
             !(error instanceof Error && error.name === 'LimitExceededException')
           ) {

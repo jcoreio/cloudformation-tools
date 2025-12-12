@@ -35,9 +35,9 @@ export default async function printStackEvents({
     'UPDATE_IN_PROGRESS'.length
   remWidth -= statusWidth
   const timestampWidth =
-    'MM/dd/yyyy HH:mm:ss AM'.length < width / 5
-      ? 'MM/dd/yyyy HH:mm:ss AM'.length
-      : 'HH:mm:ss AM'.length
+    'MM/dd/yyyy HH:mm:ss AM'.length < width / 5 ?
+      'MM/dd/yyyy HH:mm:ss AM'.length
+    : 'HH:mm:ss AM'.length
   remWidth -= timestampWidth
   let stackNameWidth, resourceIdWidth, reasonWidth
   if (remWidth / 3 < 32) {

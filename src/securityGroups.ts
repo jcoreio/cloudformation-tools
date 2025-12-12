@@ -5,7 +5,7 @@ import {
   EC2ClientConfig,
   SecurityGroup,
 } from '@aws-sdk/client-ec2'
-import { VError } from 'verror'
+import VError from 'verror'
 
 export async function getSecurityGroupId({
   securityGroupName,
@@ -23,11 +23,11 @@ export async function getSecurityGroupId({
   if (!vpcId) throw Error('vpcId is required')
   if (!awsConfig)
     awsConfig = {
-      ...(region
-        ? {
-            region,
-          }
-        : {}),
+      ...(region ?
+        {
+          region,
+        }
+      : {}),
     }
   if (!ec2) ec2 = new EC2Client(awsConfig)
   let securityGroups: SecurityGroup[] = []
@@ -87,11 +87,11 @@ export async function upsertSecurityGroup({
 }> {
   if (!awsConfig)
     awsConfig = {
-      ...(region
-        ? {
-            region,
-          }
-        : {}),
+      ...(region ?
+        {
+          region,
+        }
+      : {}),
     }
   if (!ec2) ec2 = new EC2Client(awsConfig)
   let securityGroupId = await getSecurityGroupId({

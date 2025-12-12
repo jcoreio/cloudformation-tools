@@ -78,14 +78,16 @@ describe.skip(`upsertIAMInstanceProfile`, function () {
 
   async function cleanup() {
     await Promise.all([
-      deleteIAMInstanceProfile({ iam, InstanceProfileName }).catch((error) => {
-        if (
-          !(error instanceof Error && error.name === 'NoSuchEntityException')
-        ) {
-          throw error
+      deleteIAMInstanceProfile({ iam, InstanceProfileName }).catch(
+        (error: unknown) => {
+          if (
+            !(error instanceof Error && error.name === 'NoSuchEntityException')
+          ) {
+            throw error
+          }
         }
-      }),
-      deleteIAMRole({ iam, RoleName }).catch((error) => {
+      ),
+      deleteIAMRole({ iam, RoleName }).catch((error: unknown) => {
         if (
           !(error instanceof Error && error.name === 'NoSuchEntityException')
         ) {

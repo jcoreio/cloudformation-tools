@@ -77,8 +77,7 @@ export async function copyECRImage({
   const ecrOptionsFinal = ecrOptions || {}
   const ecr = new ECRClient(ecrOptionsFinal)
 
-  let imageExists = false
-  await ecr
+  const imageExists = await ecr
     .send(
       new DescribeImagesCommand({
         repositoryName,
@@ -86,8 +85,8 @@ export async function copyECRImage({
       })
     )
     .then(
-      () => (imageExists = true),
-      () => (imageExists = false)
+      () => true,
+      () => false
     )
 
   console.error(
@@ -119,10 +118,8 @@ export async function copyECRImage({
     await spawn('docker', ['pull', sourceImage], { stdio: 'inherit' })
   }
 
-  let repositoryUri: string | undefined = undefined
-  let registryId: string | undefined = undefined
   async function getRepositoryUri() {
-    ;({
+    const {
       repositories: [
         { repositoryUri, registryId } = {
           repositoryUri: undefined,
@@ -131,19 +128,19 @@ export async function copyECRImage({
       ] = [],
     } = await ecr.send(
       new DescribeRepositoriesCommand({ repositoryNames: [repositoryName] })
-    ))
+    )
+    return { repositoryUri, registryId }
   }
-  try {
-    await getRepositoryUri()
-  } catch (error) {
-    // ignore
-  }
+  let { repositoryUri, registryId } = await getRepositoryUri().catch(() => ({
+    repositoryUri: undefined,
+    registryId: undefined,
+  }))
 
   if (!repositoryUri) {
     console.error(`creating ECR repository ${repositoryName}...`)
     await ecr.send(new CreateRepositoryCommand({ repositoryName }))
     console.error(`successfully created ECR repo ${repositoryName}`)
-    await getRepositoryUri()
+    ;({ repositoryUri, registryId } = await getRepositoryUri())
   }
   if (!repositoryUri || !registryId) {
     throw new Error(`failed to get ECR repositoryUri or registryId`)

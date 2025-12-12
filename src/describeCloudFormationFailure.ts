@@ -64,8 +64,9 @@ export default async function describeCloudFormationFailure(options: {
     const { ResourceStatusReason, ResourceProperties } = event
     if (ResourceStatusReason) {
       stream.write('ResourceStatusReason\n')
-      const width = Number.isFinite((stream as any).columns)
-        ? Math.min(80, Math.max(40, (stream as any).columns - 2))
+      const width =
+        Number.isFinite((stream as any).columns) ?
+          Math.min(80, Math.max(40, (stream as any).columns - 2))
         : 80
       for (const line of wrapString(ResourceStatusReason, width)) {
         stream.write(chalk`  {bold ${line}}\n`)
@@ -82,15 +83,4 @@ export default async function describeCloudFormationFailure(options: {
     }
     stream.write('\n')
   }
-}
-if (!module.parent) {
-  describeCloudFormationFailure({
-    StackName: process.argv[2],
-  }).then(
-    () => process.exit(0),
-    (err: Error) => {
-      console.error(err.stack) // eslint-disable-line no-console
-      process.exit(1)
-    }
-  )
 }

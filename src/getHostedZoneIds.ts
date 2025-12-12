@@ -20,9 +20,8 @@ export default async function getHostedZoneIds({
   awsConfig?: Route53ClientConfig
 }): Promise<{ publicZone: string; privateZone: string }> {
   if (!domain) throw Error(`domain is required`)
-  const domainClean = domain.endsWith('.')
-    ? domain.substr(0, domain.length - 1)
-    : domain
+  const domainClean =
+    domain.endsWith('.') ? domain.substring(0, domain.length - 1) : domain
   if (!domainClean) throw Error(`domain must not be just a trailing dot`)
   if (!awsConfig) awsConfig = { ...(region ? { region } : {}) }
   const { HostedZones } = await new Route53Client(awsConfig).send(
@@ -42,17 +41,14 @@ export default async function getHostedZoneIds({
   const privateZone = extractId(
     thisDomainZones?.find(({ Config }) => Config?.PrivateZone)
   )
-  const errors = []
-  if (!publicZone) errors.push('public zone not found')
-  if (!privateZone) errors.push('private zone not found')
-  if (errors.length) {
+  if (!publicZone || !privateZone) {
     throw Error(
-      `${errors.join(', ')} for domain ${domain}. Zones: ${JSON.stringify(
+      `${[...(publicZone ? [] : ['public zone not found']), ...(privateZone ? [] : ['private zone not found'])].join(', ')} for domain ${domain}. Zones: ${JSON.stringify(
         HostedZones,
         null,
         2
       )}`
     )
   }
-  return { publicZone: publicZone!, privateZone: privateZone! }
+  return { publicZone, privateZone }
 }

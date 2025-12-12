@@ -27,7 +27,7 @@ async function checksum(
   data: Buffer | string | (() => Readable)
 ): Promise<string> {
   const hash = crypto.createHash('md5')
-  if (data instanceof Buffer || typeof data === 'string') {
+  if (typeof data !== 'function') {
     hash.update(data)
     return hash.digest('hex')
   }
@@ -96,8 +96,7 @@ export default class S3Uploader {
       )
       /* eslint-enable no-console */
     })
-    const output = await upload.done()
-    output.Location
+    await upload.done()
     return this.makeUrl(Key)
   }
   async uploadWithDedup({

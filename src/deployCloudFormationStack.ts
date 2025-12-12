@@ -24,6 +24,7 @@ import {
   Parameter,
   SetStackPolicyCommand,
   SetStackPolicyCommandInput,
+  Stack,
   Tag,
   waitUntilStackCreateComplete,
   waitUntilStackDeleteComplete,
@@ -35,7 +36,7 @@ import { S3Client } from '@aws-sdk/client-s3'
 import { waitSettings } from './waitSettings'
 
 export type DeployCloudFormationStackInput<
-  Template extends CloudFormationTemplate = CloudFormationTemplate
+  Template extends CloudFormationTemplate = CloudFormationTemplate,
 > = Omit<
   CreateChangeSetInput,
   | 'ChangeSetName'
@@ -78,7 +79,7 @@ export type DeployCloudFormationStackInput<
 }
 
 export type DeployCloudFormationStackOutput<
-  Template extends CloudFormationTemplate = CloudFormationTemplate
+  Template extends CloudFormationTemplate = CloudFormationTemplate,
 > = {
   ChangeSetName: string
   ChangeSetType: string
@@ -87,7 +88,7 @@ export type DeployCloudFormationStackOutput<
 }
 
 export default async function deployCloudFormationStack<
-  Template extends CloudFormationTemplate = CloudFormationTemplate
+  Template extends CloudFormationTemplate = CloudFormationTemplate,
 >({
   cloudformation: _cloudformation,
   region,
@@ -116,35 +117,38 @@ export default async function deployCloudFormationStack<
   if (!StackName) throw new Error('missing StackName')
   if (!awsConfig)
     awsConfig = {
-      ...(region
-        ? {
-            region,
-          }
-        : {}),
+      ...(region ?
+        {
+          region,
+        }
+      : {}),
     }
   const cloudformation = _cloudformation || new CloudFormationClient(awsConfig)
   const deployer = new Deployer(cloudformation)
-  const Parameters: Parameter[] | undefined = Array.isArray(_Parameters)
-    ? _Parameters
-    : _Parameters
-    ? Object.entries(_Parameters as Record<string, Parameter>)
+  const Parameters: Parameter[] | undefined =
+    Array.isArray(_Parameters) ? _Parameters
+    : _Parameters ?
+      Object.entries(_Parameters as { [K in string]?: unknown })
         .map(([key, value]) => ({
           ParameterKey: key,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           ParameterValue: value == null ? undefined : String(value),
         }))
         .filter((p) => p.ParameterValue != null)
     : undefined
   const Tags: Tag[] | undefined =
-    _Tags && !Array.isArray(_Tags)
-      ? Object.entries(_Tags)
-          .map(([Key, Value]) => ({
-            Key,
-            Value: Value == null ? undefined : String(Value),
-          }))
-          .filter((t) => t.Value != null)
-      : _Tags
-  const s3Uploader = s3
-    ? new S3Uploader({
+    _Tags && !Array.isArray(_Tags) ?
+      Object.entries(_Tags)
+        .map(([Key, Value]) => ({
+          Key,
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion
+          Value: Value == null ? undefined : String(Value),
+        }))
+        .filter((t) => t.Value != null)
+    : _Tags
+  const s3Uploader =
+    s3 ?
+      new S3Uploader({
         ...s3,
         // @ts-expect-error extension types don't match
         s3: new S3Client(awsConfig),
@@ -175,8 +179,9 @@ export default async function deployCloudFormationStack<
       }
       TemplateBody = JSON.stringify(Template, null, 2)
     } else if (TemplateFile) {
-      TemplateBody = s3Uploader
-        ? () => fs.createReadStream(TemplateFile, 'utf8')
+      TemplateBody =
+        s3Uploader ?
+          () => fs.createReadStream(TemplateFile, 'utf8')
         : await fs.readFile(TemplateFile, 'utf8')
     } else if (!UsePreviousTemplate) {
       throw new Error(
@@ -209,7 +214,7 @@ export default async function deployCloudFormationStack<
       ac.abort()
     }
   }
-  const { Stacks: [ExistingStack] = [] } = await cloudformation
+  const { Stacks: ExistingStacks = [] } = await cloudformation
     .send(
       new DescribeStacksCommand({
         StackName,
@@ -218,6 +223,7 @@ export default async function deployCloudFormationStack<
     .catch(() => ({
       Stacks: [],
     }))
+  const ExistingStack = ExistingStacks[0] as Stack | undefined
   if (ExistingStack) {
     const { StackStatus } = ExistingStack
     const createFailed = [
@@ -236,9 +242,9 @@ export default async function deployCloudFormationStack<
         new SetStackPolicyCommand({
           StackName,
           StackPolicyBody:
-            typeof StackPolicy === 'string'
-              ? StackPolicy
-              : JSON.stringify(StackPolicy, null, 2),
+            typeof StackPolicy === 'string' ? StackPolicy : (
+              JSON.stringify(StackPolicy, null, 2)
+            ),
         })
       )
     }
@@ -383,14 +389,16 @@ export default async function deployCloudFormationStack<
     )
 
     if (approve) {
-      const { approved } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'approved',
-          message: 'Deploy stack?',
-          default: true,
-        },
-      ])
+      const approved: boolean = (
+        await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'approved',
+            message: 'Deploy stack?',
+            default: true,
+          },
+        ])
+      ).approved
       process.stderr.write(
         approved ? 'OK, deploying...\n' : 'OK, aborted deployment\n'
       )
@@ -450,14 +458,15 @@ export default async function deployCloudFormationStack<
       new SetStackPolicyCommand({
         StackName,
         StackPolicyBody:
-          typeof StackPolicy === 'string'
-            ? StackPolicy
-            : JSON.stringify(StackPolicy, null, 2),
+          typeof StackPolicy === 'string' ? StackPolicy : (
+            JSON.stringify(StackPolicy, null, 2)
+          ),
       })
     )
   }
-  const Outputs = readOutputs
-    ? await getStackOutputs({
+  const Outputs =
+    readOutputs ?
+      await getStackOutputs({
         region,
         StackName,
         cloudformation,

@@ -23,7 +23,7 @@ export default function layoutColumns({
   widths: number[]
   delimiter?: string
 }): string {
-  const lines: Array<any | string> = []
+  const lines: Array<string> = []
   const strColumns = columns.map((c) => (c == null ? '' : String(c)))
   do {
     const line = strColumns.map((text: string, index: number): string => {

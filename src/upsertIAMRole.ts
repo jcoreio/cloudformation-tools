@@ -47,7 +47,7 @@ export async function upsertIAMRole({
         AssumeRolePolicyDocument: stringify(AssumeRolePolicyDocument),
       })
     )
-    .catch(async (error) => {
+    .catch(async (error: unknown) => {
       if (
         !(
           error instanceof Error &&

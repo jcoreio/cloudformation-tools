@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, it, beforeEach, afterEach } from 'mocha'
 import { UpsertIAMRoleProperties } from '../src/upsertIAMRole'
 import { upsertIAMRole } from '../src/upsertIAMRole'
@@ -66,7 +67,7 @@ describe.skip(`deleteIAMRole/upsertIAMRole`, function () {
   const { RoleName } = properties
 
   async function cleanup() {
-    await deleteIAMRole({ iam, RoleName }).catch((error) => {
+    await deleteIAMRole({ iam, RoleName }).catch((error: unknown) => {
       if (!(error instanceof Error && error.name === 'NoSuchEntityException')) {
         throw error
       }

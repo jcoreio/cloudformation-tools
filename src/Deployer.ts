@@ -42,10 +42,10 @@ export default class Deployer {
     let result
     try {
       result = await this._client.send(new DescribeStacksCommand({ StackName }))
-    } catch (error) {
+    } catch {
       return false
     }
-    if (!result?.Stacks?.length) return false
+    if (!result.Stacks?.length) return false
 
     // When you run CreateChangeSet on a a stack that does not exist,
     // CloudFormation will create a stack and set it's status
@@ -230,15 +230,15 @@ export default class Deployer {
     process.stderr.write(
       `Waiting for stack create/update to complete - ${StackName}...\n`
     )
-    await (ChangeSetType === 'CREATE'
-      ? waitUntilStackCreateComplete(
-          { client: this._client, ...waitSettings },
-          { StackName }
-        )
-      : waitUntilStackUpdateComplete(
-          { client: this._client, ...waitSettings },
-          { StackName }
-        ))
+    await (ChangeSetType === 'CREATE' ?
+      waitUntilStackCreateComplete(
+        { client: this._client, ...waitSettings },
+        { StackName }
+      )
+    : waitUntilStackUpdateComplete(
+        { client: this._client, ...waitSettings },
+        { StackName }
+      ))
 
     process.stderr.write(`Successfully created/updated stack - ${StackName}\n`)
   }

@@ -19,11 +19,11 @@ export async function getSubnetInfo({
   if (!subnetId) throw Error('subnetId is required')
   if (!awsConfig)
     awsConfig = {
-      ...(region
-        ? {
-            region,
-          }
-        : {}),
+      ...(region ?
+        {
+          region,
+        }
+      : {}),
     }
   if (!ec2) ec2 = new EC2Client(awsConfig)
   const { Subnets } = await ec2.send(

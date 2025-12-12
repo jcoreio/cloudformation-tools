@@ -26,11 +26,11 @@ export default async function getStackOutputs({
   if (!StackName) throw new Error('missing StackName')
   if (!awsConfig)
     awsConfig = {
-      ...(region
-        ? {
-            region,
-          }
-        : {}),
+      ...(region ?
+        {
+          region,
+        }
+      : {}),
     }
   if (!cloudformation) cloudformation = new CloudFormationClient(awsConfig)
   const { Stacks: [{ Outputs = [] } = {}] = [] } = await cloudformation.send(
@@ -40,22 +40,9 @@ export default async function getStackOutputs({
   )
   return Object.fromEntries(
     Outputs.flatMap((o) =>
-      o.OutputKey != null && o.OutputValue != null
-        ? [[o.OutputKey, o.OutputValue]]
-        : []
+      o.OutputKey != null && o.OutputValue != null ?
+        [[o.OutputKey, o.OutputValue]]
+      : []
     )
-  )
-}
-if (!module.parent) {
-  getStackOutputs({
-    StackName: process.argv[2],
-  }).then(
-    // eslint-disable-next-line no-console
-    (outputs) => console.log(outputs),
-    (err: Error) => {
-      // eslint-disable-next-line no-console
-      console.error(err.stack)
-      process.exit(1)
-    }
   )
 }
