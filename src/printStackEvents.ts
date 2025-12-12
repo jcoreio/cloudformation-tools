@@ -24,7 +24,7 @@ export default async function printStackEvents({
   printHeader?: boolean
   width?: number
 }) {
-  const numColumns = 5
+  const numColumns = 6
   let remWidth = width - (numColumns - 1) * 2
   const statusWidth =
     [
@@ -39,6 +39,8 @@ export default async function printStackEvents({
       'MM/dd/yyyy HH:mm:ss AM'.length
     : 'HH:mm:ss AM'.length
   remWidth -= timestampWidth
+  const deltaWidth = 6
+  remWidth -= deltaWidth
   let stackNameWidth, resourceIdWidth, reasonWidth
   if (remWidth / 3 < 32) {
     stackNameWidth = resourceIdWidth = Math.floor(remWidth / 3)
@@ -53,6 +55,7 @@ export default async function printStackEvents({
   }
   const widths = [
     timestampWidth,
+    deltaWidth,
     stackNameWidth,
     resourceIdWidth,
     statusWidth,
@@ -63,6 +66,7 @@ export default async function printStackEvents({
       layoutColumns({
         columns: [
           'Timestamp',
+          '+Delta',
           'Stack Name',
           'Logical Resource Id',
           'Resource Status',
@@ -74,12 +78,28 @@ export default async function printStackEvents({
     )
     out.write('='.repeat(width) + '\n')
   }
+  const startTimestamps = new Map<string, Date | undefined>()
   for await (const event of events) {
+    if (
+      event.LogicalResourceId &&
+      !startTimestamps.has(event.LogicalResourceId)
+    ) {
+      startTimestamps.set(event.LogicalResourceId, event.Timestamp)
+    }
+    const startTimestamp =
+      event.LogicalResourceId ?
+        startTimestamps.get(event.LogicalResourceId)
+      : undefined
+    const delta =
+      event.Timestamp && startTimestamp != null ?
+        event.Timestamp.getTime() - startTimestamp.getTime()
+      : undefined
     out.write(
       statusColor(event.ResourceStatus)(
         layoutColumns({
           columns: [
             event.Timestamp?.toLocaleString(),
+            formatDelta(delta),
             event.StackName,
             event.LogicalResourceId,
             event.ResourceStatus,
@@ -91,4 +111,23 @@ export default async function printStackEvents({
       )
     )
   }
+}
+
+function formatDelta(delta: number | undefined) {
+  if (!delta) return ''
+  const ms = delta % 1000
+  delta = (delta - ms) / 1000
+  const s = delta % 60
+  delta = (delta - s) / 60
+  const m = delta % 60
+  delta = (delta - m) / 60
+  const h = delta
+  return (
+    '+' +
+    [
+      ...(h ? [h] : []),
+      m.toFixed().padStart(2, '0'),
+      s.toFixed().padStart(2, '0'),
+    ].join(':')
+  )
 }
