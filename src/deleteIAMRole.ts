@@ -3,6 +3,7 @@ import {
   DeleteRolePolicyCommand,
   DetachRolePolicyCommand,
   IAMClient,
+  IAMClientConfig,
   ListAttachedRolePoliciesCommand,
   ListRolePoliciesCommand,
 } from '@aws-sdk/client-iam'
@@ -12,7 +13,7 @@ export async function deleteIAMRole({
   iam = new IAMClient(awsConfig),
   RoleName,
 }: {
-  awsConfig?: object
+  awsConfig?: IAMClientConfig
   iam?: IAMClient
   RoleName: string
 }) {

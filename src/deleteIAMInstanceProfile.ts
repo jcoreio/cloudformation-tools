@@ -2,6 +2,7 @@ import {
   DeleteInstanceProfileCommand,
   GetInstanceProfileCommand,
   IAMClient,
+  IAMClientConfig,
   RemoveRoleFromInstanceProfileCommand,
 } from '@aws-sdk/client-iam'
 
@@ -10,7 +11,7 @@ export async function deleteIAMInstanceProfile({
   iam = new IAMClient(awsConfig),
   InstanceProfileName,
 }: {
-  awsConfig?: object
+  awsConfig?: IAMClientConfig
   iam?: IAMClient
   InstanceProfileName: string
 }) {
