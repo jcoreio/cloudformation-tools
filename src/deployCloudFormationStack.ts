@@ -36,7 +36,8 @@ import { S3Client } from '@aws-sdk/client-s3'
 import { waitSettings } from './waitSettings'
 
 export type DeployCloudFormationStackInput<
-  Template extends CloudFormationTemplate = CloudFormationTemplate,
+  Template extends CloudFormationTemplate<{ Transform?: string | string[] }> =
+    CloudFormationTemplate<{ Transform?: string | string[] }>,
 > = Omit<
   CreateChangeSetInput,
   | 'ChangeSetName'
@@ -79,7 +80,8 @@ export type DeployCloudFormationStackInput<
 }
 
 export type DeployCloudFormationStackOutput<
-  Template extends CloudFormationTemplate = CloudFormationTemplate,
+  Template extends CloudFormationTemplate<{ Transform?: string | string[] }> =
+    CloudFormationTemplate<{ Transform?: string | string[] }>,
 > = {
   ChangeSetName: string
   ChangeSetType: string
@@ -88,7 +90,8 @@ export type DeployCloudFormationStackOutput<
 }
 
 export default async function deployCloudFormationStack<
-  Template extends CloudFormationTemplate = CloudFormationTemplate,
+  Template extends CloudFormationTemplate<{ Transform?: string | string[] }> =
+    CloudFormationTemplate<{ Transform?: string | string[] }>,
 >({
   cloudformation: _cloudformation,
   region,
