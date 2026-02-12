@@ -41,9 +41,6 @@ importers:
       '@smithy/util-waiter':
         specifier: ^4.0.2
         version: 4.2.5
-      '@types/node':
-        specifier: ^18.7.22
-        version: 18.19.130
       ansi-escapes:
         specifier: ^4.0.0
         version: 4.3.2
@@ -55,7 +52,7 @@ importers:
         version: 10.1.0
       inquirer:
         specifier: ^8.0.0
-        version: 8.2.7(@types/node@18.19.130)
+        version: 8.2.7(@types/node@20.19.33)
       promisify-child-process:
         specifier: ^4.1.1
         version: 4.1.2
@@ -105,6 +102,9 @@ importers:
       '@types/mocha':
         specifier: ^10.0.1
         version: 10.0.10
+      '@types/node':
+        specifier: ^20
+        version: 20.19.33
       '@types/verror':
         specifier: ^1.10.10
         version: 1.10.11
@@ -1295,8 +1295,8 @@ packages:
   '@types/mocha@10.0.10':
     resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
 
-  '@types/node@18.19.130':
-    resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
+  '@types/node@20.19.33':
+    resolution: {integrity: sha512-Rs1bVAIdBs5gbTIKza/tgpMuG1k3U/UMJLWecIMxNdJFDMzcM5LOiLVRYh3PilWEYDIeUDv7bpiHPLPsbydGcw==}
 
   '@types/through@0.0.33':
     resolution: {integrity: sha512-HsJ+z3QuETzP3cswwtzt2vEIiHBk/dCcHGhbmG5X3ecnwFD/lPrMpliGXxSCg03L9AhrdwA4Oz/qfspkDW+xGQ==}
@@ -3205,8 +3205,8 @@ packages:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
     engines: {node: '>= 0.4'}
 
-  undici-types@5.26.5:
-    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   unicode-canonical-property-names-ecmascript@2.0.1:
     resolution: {integrity: sha512-dA8WbNeb2a6oQzAQ55YlT5vQAWGV9WXOsi3SskE3bcCdM0P4SDd+24zS/OCacdRq5BkdsRj9q3Pg6YyQoxIGqg==}
@@ -5000,12 +5000,12 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@inquirer/external-editor@1.0.3(@types/node@18.19.130)':
+  '@inquirer/external-editor@1.0.3(@types/node@20.19.33)':
     dependencies:
       chardet: 2.1.1
       iconv-lite: 0.7.0
     optionalDependencies:
-      '@types/node': 18.19.130
+      '@types/node': 20.19.33
 
   '@isaacs/balanced-match@4.0.1': {}
 
@@ -5523,7 +5523,7 @@ snapshots:
 
   '@types/fs-extra@9.0.13':
     dependencies:
-      '@types/node': 18.19.130
+      '@types/node': 20.19.33
 
   '@types/inquirer@8.2.10':
     dependencies:
@@ -5534,13 +5534,13 @@ snapshots:
 
   '@types/mocha@10.0.10': {}
 
-  '@types/node@18.19.130':
+  '@types/node@20.19.33':
     dependencies:
-      undici-types: 5.26.5
+      undici-types: 6.21.0
 
   '@types/through@0.0.33':
     dependencies:
-      '@types/node': 18.19.130
+      '@types/node': 20.19.33
 
   '@types/validate-npm-package-name@4.0.2': {}
 
@@ -6612,9 +6612,9 @@ snapshots:
 
   inherits@2.0.4: {}
 
-  inquirer@8.2.7(@types/node@18.19.130):
+  inquirer@8.2.7(@types/node@20.19.33):
     dependencies:
-      '@inquirer/external-editor': 1.0.3(@types/node@18.19.130)
+      '@inquirer/external-editor': 1.0.3(@types/node@20.19.33)
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       cli-cursor: 3.1.0
@@ -7691,7 +7691,7 @@ snapshots:
       has-symbols: 1.1.0
       which-boxed-primitive: 1.1.1
 
-  undici-types@5.26.5: {}
+  undici-types@6.21.0: {}
 
   unicode-canonical-property-names-ecmascript@2.0.1: {}
 
