@@ -1,4 +1,3 @@
-import { inspect } from 'util'
 import fs from 'fs-extra'
 import Deployer from './Deployer'
 import {
@@ -34,6 +33,8 @@ import {
 } from '@aws-sdk/client-cloudformation'
 import { S3Client } from '@aws-sdk/client-s3'
 import { waitSettings } from './waitSettings'
+import { printChanges } from './printChanges.js'
+import chalk from 'chalk'
 
 export type DeployCloudFormationStackInput<
   Template extends CloudFormationTemplate<{ Transform?: string | string[] }> =
@@ -387,12 +388,22 @@ export default async function deployCloudFormationStack<
       ChangeSetName,
       StackName,
     })
-    process.stderr.write(
-      `Changes to stack ${StackName}:\n${inspect(changes, {
-        colors: true,
-        depth: 5,
-      })}\n`
-    )
+    if (changes) {
+      // eslint-disable-next-line no-console
+      console.error(
+        (changes.some((c) => c.ResourceChange?.Replacement === 'True') ?
+          chalk.red
+        : changes.some((c) => c.ResourceChange?.Replacement === 'Conditional') ?
+          chalk.yellow
+        : (text: string) => text)(chalk`Changes to stack {bold ${StackName}}:`)
+      )
+      printChanges({
+        changes,
+        printHeader: true,
+      })
+      // eslint-disable-next-line no-console
+      console.error()
+    }
 
     if (approve) {
       const approved: boolean = (

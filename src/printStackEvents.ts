@@ -1,10 +1,9 @@
 import { Writable } from 'stream'
 import layoutColumns from './layoutColumns'
 import chalk from 'chalk'
-import { StackEvent } from '@aws-sdk/client-cloudformation'
-function statusColor(
-  status: StackEvent['ResourceStatus']
-): (text: string) => string {
+import { ResourceStatus, StackEvent } from '@aws-sdk/client-cloudformation'
+
+function statusColor(status?: ResourceStatus): (text: string) => string {
   if (status) {
     if ('DELETE_COMPLETE' === status) return chalk.gray
     if (/_COMPLETE$/.test(status)) return chalk.green
@@ -13,6 +12,7 @@ function statusColor(
   }
   return (text: string) => text
 }
+
 export default async function printStackEvents({
   events,
   out = process.stderr,

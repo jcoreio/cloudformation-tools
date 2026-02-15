@@ -145,7 +145,11 @@ export default class Deployer {
     StackName: string
   }) {
     const { Changes } = await this._client.send(
-      new DescribeChangeSetCommand({ ChangeSetName, StackName })
+      new DescribeChangeSetCommand({
+        ChangeSetName,
+        StackName,
+        IncludePropertyValues: true,
+      })
     )
     return Changes
   }
