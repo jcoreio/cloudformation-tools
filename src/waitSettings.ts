@@ -1,5 +1,5 @@
 export const waitSettings = {
-  minDelay: 2,
-  maxDelay: 20,
+  minDelay: 1,
+  maxDelay: 5,
   maxWaitTime: 3600,
 }

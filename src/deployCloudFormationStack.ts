@@ -454,43 +454,17 @@ export default async function deployCloudFormationStack<
         )
       }
     }
-    await watchDuring(async (watchEventsPromise) => {
+    await watchDuring(async () => {
       await deployer.executeChangeSet({
         ChangeSetName,
         StackName,
         DisableRollback,
         RetainExceptOnCreate,
       })
-      const ac = new AbortController()
-      await Promise.race([
-        deployer
-          .waitForExecute({
-            StackName,
-            ChangeSetType,
-            abortSignal: ac.signal,
-          })
-          .catch((error: unknown) => {
-            if (
-              error instanceof Object &&
-              'name' in error &&
-              error.name === 'AbortSignal'
-            ) {
-              // waitForExecute won't print this if it we early aborted it because we got a
-              // stack CREATE_COMPLETE/UPDATE_COMPLETE event
-              process.stderr.write(
-                `Successfully created/updated stack - ${StackName}\n`
-              )
-              return
-            }
-            throw error
-          }),
-        // we can often get a stack CREATE_COMPLETE/UPDATE_COMPLETE event before
-        // waitUntilStackCreateComplete/watiUntilStackUpdateComplete gets around to polling again,
-        // so abort polling if that happens
-        watchEventsPromise.then(() => {
-          ac.abort()
-        }),
-      ])
+      await deployer.waitForExecute({
+        StackName,
+        ChangeSetType,
+      })
     })
   } else {
     process.stderr.write(`Stack ${StackName} is already in the desired state\n`)
