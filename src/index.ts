@@ -1,5 +1,7 @@
 export {
   default as deployCloudFormationStack,
+  type ApproveFn,
+  type ApproveOptions,
   type DeployCloudFormationStackInput,
   type DeployCloudFormationStackOutput,
 } from './deployCloudFormationStack'

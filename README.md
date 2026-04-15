@@ -51,9 +51,27 @@ Alternative to `watchResources`. If given, will watch and print out resource sta
 
 Destination AWS region for CloudFormation stack
 
-#### `approve` (`boolean`, _optional_)
+#### `approve` (`boolean | ApproveFn`, _optional_)
 
 If `true`, lists changes and prompts for approval before deploying. Defaults to `false`.
+
+If a function is given, it will be called with an `ApproveOptions` object and must return a `boolean` or `Promise<booelan>`.
+If the return value is `true`, `deployCloudFormationStack` will prompt the user for approval.
+
+```ts
+export type ApproveOptions =
+  | {
+      Operation: 'Delete'
+      StackName: string
+      IsInteractive: boolean
+    }
+  | {
+      Operation: ChangeSetType
+      StackName: string
+      ChangeSet: DescribeChangeSetOutput
+      IsInteractive: boolean
+    }
+```
 
 #### `StackName` (`string`, **required**)
 

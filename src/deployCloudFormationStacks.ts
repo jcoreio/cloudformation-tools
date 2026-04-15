@@ -3,6 +3,7 @@ import {
   CloudFormationClientConfig,
 } from '@aws-sdk/client-cloudformation'
 import deployCloudFormationStack, {
+  ApproveFn,
   DeployCloudFormationStackInput,
   DeployCloudFormationStackOutput,
 } from './deployCloudFormationStack'
@@ -10,6 +11,7 @@ import deployCloudFormationStack, {
 export default function deployCloudFormationStacks({
   awsConfig,
   cloudformation,
+  approve,
   s3,
   stacks,
 }: {
@@ -22,17 +24,18 @@ export default function deployCloudFormationStacks({
     forceUpload?: boolean
   }
   stacks: ReadonlyArray<
-    Omit<DeployCloudFormationStackInput, 'cloudformation' | 'approve' | 's3'>
+    Omit<DeployCloudFormationStackInput, 'cloudformation' | 's3'>
   >
+  approve: boolean | ApproveFn
 }): Promise<Array<DeployCloudFormationStackOutput>> {
   return Promise.all(
     stacks.map((stack) =>
       deployCloudFormationStack({
         awsConfig,
+        approve,
         ...stack,
         cloudformation,
         s3,
-        approve: false,
       })
     )
   )

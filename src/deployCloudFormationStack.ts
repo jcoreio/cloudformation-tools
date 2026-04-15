@@ -14,11 +14,13 @@ import { Writable } from 'stream'
 import watchStackEvents from './watchStackEvents'
 import printStackEvents from './printStackEvents'
 import {
+  ChangeSetType,
   CloudFormationClient,
   CloudFormationClientConfig,
   CreateChangeSetInput,
   DeleteChangeSetCommand,
   DeleteStackCommand,
+  DescribeChangeSetOutput,
   DescribeStacksCommand,
   Parameter,
   SetStackPolicyCommand,
@@ -35,6 +37,22 @@ import { S3Client } from '@aws-sdk/client-s3'
 import { waitSettings } from './waitSettings'
 import { printChanges } from './printChanges.js'
 import chalk from 'chalk'
+import { isInteractive } from './isInteractive'
+
+export type ApproveFn = (options: ApproveOptions) => boolean | Promise<boolean>
+
+export type ApproveOptions =
+  | {
+      Operation: 'Delete'
+      StackName: string
+      IsInteractive: boolean
+    }
+  | {
+      Operation: ChangeSetType
+      StackName: string
+      ChangeSet: DescribeChangeSetOutput
+      IsInteractive: boolean
+    }
 
 export type DeployCloudFormationStackInput<
   Template extends CloudFormationTemplate<{ Transform?: string | string[] }> =
@@ -51,7 +69,7 @@ export type DeployCloudFormationStackInput<
   cloudformation?: CloudFormationClient
   region?: string
   awsConfig?: CloudFormationClientConfig
-  approve?: boolean
+  approve?: boolean | ApproveFn
   ImportExistingResources?: boolean
   StackName: string
   ChangeSetName?: string
@@ -97,7 +115,9 @@ export default async function deployCloudFormationStack<
   cloudformation: _cloudformation,
   region,
   awsConfig,
-  approve,
+  approve = process.env.APPROVE ?
+    Boolean(parseInt(process.env.APPROVE))
+  : undefined,
   StackName,
   Template,
   TemplateFile,
@@ -259,18 +279,29 @@ export default async function deployCloudFormationStack<
       (createFailed && replaceIfCreateFailed) ||
       (StackStatus === 'DELETE_FAILED' && replaceIfDeleteFailed)
     ) {
-      if (approve) {
-        const { approved } = await inquirer.prompt([
-          {
-            type: 'confirm',
-            name: 'approved',
-            message: `Stack ${StackName} already exists in ${StackStatus} state; do you want to delete it?`,
-            default: true,
-          },
-        ])
+      if (
+        approve === true ||
+        (typeof approve === 'function' &&
+          (await approve({
+            Operation: 'Delete',
+            StackName,
+            IsInteractive: isInteractive,
+          })))
+      ) {
+        const { approved } =
+          isInteractive ?
+            await inquirer.prompt([
+              {
+                type: 'confirm',
+                name: 'approved',
+                message: `Stack ${StackName} already exists in ${StackStatus} state; do you want to delete it?`,
+                default: true,
+              },
+            ])
+          : false
         if (!approved) {
           throw new Error(
-            `Stack ${StackName} already exists in ${StackStatus} state, but you chose not to delete it`
+            `Stack ${StackName} already exists in ${StackStatus} state, but ${isInteractive ? 'you chose not to delete it' : 'could not prompt for approval, as requested'}`
           )
         }
       }
@@ -384,38 +415,51 @@ export default async function deployCloudFormationStack<
       ...rest,
     })
   if (HasChanges) {
-    const changes = await deployer.describeChangeSet({
+    const ChangeSet = await deployer.describeChangeSet({
       ChangeSetName,
       StackName,
     })
-    if (changes) {
+    const { Changes } = ChangeSet
+    if (Changes) {
       // eslint-disable-next-line no-console
       console.error(
-        (changes.some((c) => c.ResourceChange?.Replacement === 'True') ?
+        (Changes.some((c) => c.ResourceChange?.Replacement === 'True') ?
           chalk.red
-        : changes.some((c) => c.ResourceChange?.Replacement === 'Conditional') ?
+        : Changes.some((c) => c.ResourceChange?.Replacement === 'Conditional') ?
           chalk.yellow
         : (text: string) => text)(chalk`Changes to stack {bold ${StackName}}:`)
       )
       printChanges({
-        changes,
+        changes: Changes,
         printHeader: true,
       })
       // eslint-disable-next-line no-console
       console.error()
     }
 
-    if (approve) {
-      const approved: boolean = (
-        await inquirer.prompt([
-          {
-            type: 'confirm',
-            name: 'approved',
-            message: 'Deploy stack?',
-            default: true,
-          },
-        ])
-      ).approved
+    if (
+      approve === true ||
+      (typeof approve === 'function' &&
+        (await approve({
+          Operation: ChangeSetType,
+          ChangeSet,
+          StackName,
+          IsInteractive: isInteractive,
+        })))
+    ) {
+      const approved: boolean =
+        isInteractive ?
+          (
+            await inquirer.prompt([
+              {
+                type: 'confirm',
+                name: 'approved',
+                message: 'Deploy stack?',
+                default: true,
+              },
+            ])
+          ).approved
+        : false
       process.stderr.write(
         approved ? 'OK, deploying...\n' : 'OK, aborted deployment\n'
       )
@@ -450,7 +494,7 @@ export default async function deployCloudFormationStack<
           ])
         }
         throw new Error(
-          `User aborted deployment of change set ${ChangeSetName} on stack ${StackName}`
+          `${isInteractive ? 'User aborted' : 'Could not approve'} deployment of change set ${ChangeSetName} on stack ${StackName}`
         )
       }
     }
