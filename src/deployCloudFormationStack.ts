@@ -43,7 +43,7 @@ export type ApproveFn = (options: ApproveOptions) => boolean | Promise<boolean>
 
 export type ApproveOptions =
   | {
-      Operation: 'Delete'
+      Operation: 'DELETE'
       StackName: string
       IsInteractive: boolean
     }
@@ -283,7 +283,7 @@ export default async function deployCloudFormationStack<
         approve === true ||
         (typeof approve === 'function' &&
           (await approve({
-            Operation: 'Delete',
+            Operation: 'DELETE',
             StackName,
             IsInteractive: isInteractive,
           })))

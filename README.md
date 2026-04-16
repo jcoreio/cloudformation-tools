@@ -61,7 +61,7 @@ If the return value is `true`, `deployCloudFormationStack` will prompt the user 
 ```ts
 export type ApproveOptions =
   | {
-      Operation: 'Delete'
+      Operation: 'DELETE'
       StackName: string
       IsInteractive: boolean
     }
