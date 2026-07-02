@@ -13,6 +13,7 @@ import {
   ExecuteChangeSetCommand,
   ExecuteChangeSetCommandInput,
   GetTemplateSummaryCommand,
+  OnStackFailure,
   waitUntilStackCreateComplete,
   waitUntilStackUpdateComplete,
 } from '@aws-sdk/client-cloudformation'
@@ -66,6 +67,10 @@ export default class Deployer {
     UsePreviousTemplate,
     Parameters,
     s3Uploader,
+    OnStackFailure,
+    OnCreateStackFailure = OnStackFailure,
+    OnUpdateStackFailure = OnStackFailure,
+    OnImportStackFailure = OnStackFailure,
     ...rest
   }: Omit<
     CreateChangeSetInput,
@@ -75,6 +80,9 @@ export default class Deployer {
     ChangeSetName?: string
     TemplateBody?: string | Buffer | (() => Readable)
     s3Uploader?: S3Uploader
+    OnCreateStackFailure?: OnStackFailure
+    OnUpdateStackFailure?: OnStackFailure
+    OnImportStackFailure?: OnStackFailure
   }) {
     if (!(await this.hasStack(StackName))) {
       if (!ChangeSetType) ChangeSetType = 'CREATE'
@@ -104,6 +112,10 @@ export default class Deployer {
       Description,
       UsePreviousTemplate,
       Parameters,
+      OnStackFailure:
+        ChangeSetType === 'CREATE' ? OnCreateStackFailure
+        : ChangeSetType === 'IMPORT' ? OnImportStackFailure
+        : OnUpdateStackFailure,
       ...rest,
     }
 

@@ -22,6 +22,7 @@ import {
   DeleteStackCommand,
   DescribeChangeSetOutput,
   DescribeStacksCommand,
+  OnStackFailure,
   Parameter,
   SetStackPolicyCommand,
   SetStackPolicyCommandInput,
@@ -73,6 +74,9 @@ export type DeployCloudFormationStackInput<
   ImportExistingResources?: boolean
   StackName: string
   ChangeSetName?: string
+  OnCreateStackFailure?: OnStackFailure
+  OnUpdateStackFailure?: OnStackFailure
+  OnImportStackFailure?: OnStackFailure
   Template?: Template
   TemplateFile?: string
   TemplateBody?: string | Buffer | (() => Readable)
